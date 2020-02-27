@@ -1,97 +1,61 @@
-<h2>Perlで学ぶディープラーニング入門</h2>
+<h2>Perlで学ぶディープラーニング入門 - ライブラリを使わずにディープラーニングを基礎から学ぼう</h2>
 
-Perlで学ぶディープラーニング入門
+Perlで学ぶディープラーニング入門です。
 
-<h3>Create web site</h3>
+<h3>ディープラーニングとは何か?</h3>
 
-Create web site by new command.
+ディープラーニングは、機械学習の一つの分野です。
 
-<pre>
-giblog new mysite
-</pre>
+機械学習では、入力から正しい出力を得られるように、パラメーターを調整します。
 
-Other prototypes is also available.
+たとえば、入力が「人物の写真」だとして、この人は「眼鏡をかけている」「眼鏡をかけていない」というのが出力です。パターン認識と呼ばれる基本的な分野です。
 
-<pre>
-giblog new_website mysite
-giblog new_blog mysite
-</pre>
+眼鏡をかけているかどうかの正答率を上昇させていくことが、機械学習の目標です。
 
-After creating web site, change directory to mysite
+ディープラーニングは、機械学習の中でも、人間の神経伝達の仕組みを模倣した、ニューラルネットワークを利用した機械学習です。
+
+ディープラーニングは、ニューラルネットワークの中で、深層学習と呼ばれ、複数の入力と複数の出力を、多段階に連続的につなぎ、最終的な出力を得る方法です。
 
 <pre>
-cd mysite
+人物の写真
+↓
+(x1, x2, x3, x4)
+↓
+(y1, y2, y3, y4, y5)
+↓
+(z1, z2, z3)
+↓
+(眼鏡をかけている、眼鏡をかけていない)
 </pre>
 
-<h3>Add new entry</h3>
+実際は、x1～xnまでは、もっと長いです。y1～ykまでももっと長いです。xの個数とyの個数は異なっても構いませんし、一般的には、異なるようにします。
 
-Add new entry by add command.
+また、段数は、この例では、x, y, zですが、これも、もっと長くなります。
 
-<pre>
-giblog add
-</pre>
+入力から、複数入力と複数出力を多段につなげていって、出力を得るというところがポイントです。
 
-<h3>Build</h3>
+<h3>数学の言葉をまったく使わないで解説</h3>
 
-Build web site.
+Perlで学ぶディープラーニング入門では、数学の言葉をまったく使わないで解説します。
 
-<pre>
-giblog build
-</pre>
+「えっ、そんなことができるの?」
 
-If you want to customize build process, you open lib/Giblog/Command/Build.pm and edit run subroutine.
+でも、よく考えてください。
 
-<h3>Serve</h3>
+「中身、全部ソースコードじゃないですか!!!」。
 
-You can serve your web site by morbo command if you have Mojolicious.
+「数学はわからなくっても、コードは読めるはず!!!」
 
-<pre>
-morbo serve.pl
-</pre>
+やってみてからのお楽しみ。
 
-build command is automatically executed after editting files in templates directory.
+<h3>ライブラリ使ったらいいんじゃないの?</h3>
 
-<h3>Examples</h3>
+僕は、ディープラーニングを実現するための本質は、大量のデータ量をWebから取得することと、電気代を減らせることにかかっていると考えています。
 
-Some examples.
+そもそも、この2本がなければ、ディープラーニングは、底に穴が開いているようなものです。
 
-<blockquote>
-  This is a quote.
-</blockquote>
+特定のアプリケーション用にディープラーニングを最適化するために、ディープラーニングの仕組みそのものを理解して、プログラミングが書ける必要があると考えています。
 
-<div>
-  Hello
-</div>
+汎用的なライブラリは、計算資源の利用効率を最適化してくれないのです。
 
-<h4>Sub header</h4>
-
-<pre>
-<><><>
-</pre>
-
-<pre>
-1 > 2;
-1 < 3;
-1 & 3;
-</pre>
-
-<ul>
-  <li>Item1</li>
-  <li>Item2</li>
-  <li>Item3</li>
-</ul>
-
-<table>
-  <tr>
-    <th>Head1</th><th>Head2</th>
-  </tr>
-  <tr>
-    <td>Item1</td><td>Item2</td>
-  </tr>
-</table>
-
-<a href="https://github.com/yuki-kimoto/giblog">Giblog</a>
-
-<div>
-  <img src="/images/giblog-logo.png">
-</div>
+電気代を、クラウドコンピューター事業者に吸い込まれて「はい。おしまい。」それじゃ、悲しいですよね。
