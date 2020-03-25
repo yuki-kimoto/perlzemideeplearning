@@ -18,7 +18,12 @@
     margin-bottom:15px;
     border-bottom:5px solid #D9D9D9;
   }
-  
+  .header h1 {
+    width:calc(100% - 60px);
+    margin-left:auto;
+    margin-right:auto;
+  }
+
   /* footer */
   .footer .kimoto_system_link img {
     width:105px;
@@ -60,10 +65,9 @@
   
   /* main */
   .main {
-    max-width:960px;
-    width:100%;
+    width:calc(100% - 60px);
     margin: 0 auto;
-    padding:0 5px;
+    padding:30px 0;
   }
   .main:after {
     content:"";
@@ -97,11 +101,10 @@
   
   /* tags */
   h1 {
-    max-width:1020px;
     width:100%;
     font-size:28px;
     padding:19px 10px 15px 73px;
-    background:url(/images/giblog-logo.png) no-repeat 10px 15px;
+    background:url(/images/deeplearning-logo.png) no-repeat 10px 15px;
     background-size:48px;
   }
   h1 a, h1 a:visited {
@@ -110,11 +113,10 @@
     color:#333;
   }
   h2 {
-    font-size:24px;
-    margin:10px 0;
-    padding-left:20px;
-    letter-spacing:0.5px;
-    border-left:8px solid #00A78C;
+    font-size:28px;
+    margin-bottom:20px;
+    padding-left:0px;
+    letter-spacing:1px;
   }
   h2 a, h2 a:visited {
     text-decoration:none;
@@ -122,7 +124,7 @@
   }
   h3 {
     font-size:20px;
-    border-top:4px solid #ddd;
+    border-top:6px solid #FDD766;
     padding:16px 0px 15px 18px;
     letter-spacing:0.5px;
     margin:15px 0 10px 0;
@@ -192,12 +194,11 @@
     box-shadow: 0 0 3px rgba(0,0,0,.1);
   }
   .side-list-title {
-    background:#009D82;
+    background:#FDD766;
     color:white;
     font-weight:bold;
     padding: 12px 0px 10px 0px;
     text-align:center;
-    border:1px solid #E5E5E5;
     border-bottom:none;
   }
   .side-list ul {
@@ -216,14 +217,15 @@
 /* Tablet and Smart phone */
 @media only screen and (max-width:960px) {
   .content {
-    float:none;
-    width:97%;
-    margin:0 auto;
-    margin-bottom:15px;
+    width:100%;
   }
   .side {
-    float:none;
-    width:97%;
-    margin:0 auto;
+    display:none;
+  }
+  .header h1 {
+    width:calc(100% - 30px);
+  }
+  .main {
+    width:calc(100% - 30px);
   }
 }
