@@ -170,6 +170,32 @@ sub delta {
   return $vec_out;
 }
 
+#### Miscellaneous functions
+sub vectorized_result(j) {
+  my ($j) = @_;
+  
+  my $results = [(0) x 10];
+  $results->[$j] = 1;
+  
+  return $results;
+}
+
+#### Loading a Network
+def load(filename):
+    """Load a neural network from the file ``filename``.  Returns an
+    instance of Network.
+
+    """
+    f = open(filename, "r")
+    data = json.load(f)
+    f.close()
+    cost = getattr(sys.modules[__name__], data["cost"])
+    net = Network(data["sizes"], cost=cost)
+    net.weights = [np.array(w) for w in data["weights"]]
+    net.biases = [np.array(b) for b in data["biases"]]
+    return net
+
+
 __END__
 
 #### Main Network class
@@ -404,30 +430,4 @@ class Network(object):
         f = open(filename, "w")
         json.dump(data, f)
         f.close()
-
-#### Loading a Network
-def load(filename):
-    """Load a neural network from the file ``filename``.  Returns an
-    instance of Network.
-
-    """
-    f = open(filename, "r")
-    data = json.load(f)
-    f.close()
-    cost = getattr(sys.modules[__name__], data["cost"])
-    net = Network(data["sizes"], cost=cost)
-    net.weights = [np.array(w) for w in data["weights"]]
-    net.biases = [np.array(b) for b in data["biases"]]
-    return net
-
-#### Miscellaneous functions
-def vectorized_result(j):
-    """Return a 10-dimensional unit vector with a 1.0 in the j'th position
-    and zeroes elsewhere.  This is used to convert a digit (0...9)
-    into a corresponding desired output from the neural network.
-
-    """
-    e = np.zeros((10, 1))
-    e[j] = 1.0
-    return e
 
