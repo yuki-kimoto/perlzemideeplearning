@@ -3,6 +3,30 @@ use warnings;
 
 use JSON::PP;
 
+# ベクトルのマイナス
+sub vec_minus {
+  my ($vec) = @_;
+  
+  my $vec_out = [];
+  for (my $i = 0; $i < @$vec; $i++) {
+    $vec_out->[$i] = -$vec->[$i];
+  }
+  
+  return $vec_out;
+}
+
+# ベクトルの要素の和を求める
+sub vec_sum {
+  my ($vec) = @_;
+  
+  my $total = 0;
+  for (my $i = 0; $i < @$vec; $i++) {
+    $total += $vec->[$i];
+  }
+  
+  return $total;
+}
+
 # ベクトルの長さを求める
 sub vec_len {
   my ($vec) = @_;
@@ -41,6 +65,64 @@ sub vec_sub {
   return $vec3;
 }
 
+# ベクトルのlog
+sub vec_log {
+  my ($vec) = @_;
+  
+  my $vec_out = [];
+  for (my $i = 0; $i < @$vec; $i++) {
+    $vec_out->[$i] = log($vec->[$i]);
+  }
+  
+  return $vec_out;
+}
+
+# ベクトルのexp
+sub vec_exp {
+  my ($vec) = @_;
+  
+  my $vec_out = [];
+  for (my $i = 0; $i < @$vec; $i++) {
+    $vec_out->[$i] = exp($vec->[$i]);
+  }
+  
+  return $vec_out;
+}
+
+# シグモイド関数
+sub sigmoid {
+  my ($x) = @_;
+  
+  my $x_out = 1 / (1 + exp(-$x));
+  
+  return $x_out;
+}
+
+# ベクトルのシグモイド
+sub vec_sigmoid {
+  my ($vec_z) = @_;
+  
+  my $vec_out;
+  for (my $i = 0; $i < @$vec_z; $i++) {
+    $vec_out->[$i] = sigmoid($vec_z->[$i]);
+  }
+  
+  return $vec_out;
+}
+
+# ベクトルのシグモイド素数
+sub vec_sigmoid_prime {
+  my ($vec_z) = @_;
+  
+  my $vec_out = [];
+  for (my $i = 0; $i < @$vec_z; $i++) {
+    $vec_out->[$i] = sigmoid($vec_z->[$i])*(1 - sigmoid($vec_z->[$i]))
+  }
+  
+  return $vec_out;
+}
+
+# 二次コスト
 package QuadraticCost;
 
 sub fn {
@@ -58,37 +140,37 @@ sub delta {
   
   my $vec_ya = vec_sub($vec_a, $vec_y);
   
-  my $delta = $vec_ya * sigmoid_prime($vec_z);
+  my $delta = $vec_ya * vec_sigmoid_prime($vec_z);
   
   return $delta;
 }
 
+# クロスエントロピーコスト
+package CrossEntropyCost;
+
+sub fn {
+  my ($vec_a, $vec_y) = @_;
+  
+  my $fn = 0;
+  for (my $i = 0; $i < @$vec_a; $i++) {
+    $fn += -$vec_y * log($vec_a->[$i]) - (1 - $vec_y->[$i]) * log(1 - $vec_a->[$i]);
+  }
+  
+  return $fn;
+}
+
+sub delta {
+  my ($vec_a, $vec_y) = @_;
+  
+  my $vec_out = [];
+  for (my $i = 0; $i < @$vec_a; $i++) {
+    $vec_out->[$i] = $vec_a->[$i] - $vec_y->[$i];
+  }
+  
+  return $vec_out;
+}
+
 __END__
-
-class CrossEntropyCost(object):
-
-    @staticmethod
-    def fn(a, y):
-        """Return the cost associated with an output ``a`` and desired output
-        ``y``.  Note that np.nan_to_num is used to ensure numerical
-        stability.  In particular, if both ``a`` and ``y`` have a 1.0
-        in the same slot, then the expression (1-y)*np.log(1-a)
-        returns nan.  The np.nan_to_num ensures that that is converted
-        to the correct value (0.0).
-
-        """
-        return np.sum(np.nan_to_num(-y*np.log(a)-(1-y)*np.log(1-a)))
-
-    @staticmethod
-    def delta(z, a, y):
-        """Return the error delta from the output layer.  Note that the
-        parameter ``z`` is not used by the method.  It is included in
-        the method's parameters in order to make the interface
-        consistent with the delta method for other cost classes.
-
-        """
-        return (a-y)
-
 
 #### Main Network class
 class Network(object):
@@ -349,10 +431,3 @@ def vectorized_result(j):
     e[j] = 1.0
     return e
 
-def sigmoid(z):
-    """The sigmoid function."""
-    return 1.0/(1.0+np.exp(-z))
-
-def sigmoid_prime(z):
-    """Derivative of the sigmoid function."""
-    return sigmoid(z)*(1-sigmoid(z))
