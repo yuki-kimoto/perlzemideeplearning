@@ -1,0 +1,13 @@
+<h2>シグモイド関数 - 活性化関数</h2>
+
+シグモイド関数をPerlで書いてみます。シグモイド関数は<a href="/blog/20200902120907.html">活性化関数</a>の一つです。
+
+<pre>
+sub sigmoid {
+  my ($z) = @_;
+  
+  my $sigmoid = 1.0 / (1.0 + exp(-$z));
+  
+  return $sigmoid;
+}
+</pre>
