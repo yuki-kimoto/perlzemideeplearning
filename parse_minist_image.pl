@@ -1,6 +1,7 @@
 use strict;
 use warnings;
 use FindBin;
+use Imager;
 
 # MINIST画像情報を読み込む
 my $minist_image_file = "$FindBin::Bin/data/train-images-idx3-ubyte";
@@ -42,3 +43,33 @@ $image_info->{items_count} = $items_count;
 $image_info->{rows_count} = $rows_count;
 $image_info->{columns_count} = $columns_count;
 $image_info->{data} = $image_data;
+
+# 画像情報の出力
+for (my $i = 0; $i < 5; $i++) {
+
+  # 画像オフセット
+  my $offset = $i * $rows_count * $columns_count;
+
+  # キャンバス(モノクロ)
+  my $img = Imager->new(xsize => $rows_count, ysize => $columns_count, channels => 1);
+  
+  # 画像情報を順番に出力
+  for (my $row = 0; $row < $rows_count; $row++) {
+    for (my $column = 0; $column < $columns_count; $column++) {
+      
+      # 色(白黒がRGBと逆なので反転)
+      my $pos = $offset + ($column * $rows_count) + $row;
+      my $color_bin = substr($image_data, $pos, 1);
+      my $color_value = unpack('C1', $color_bin);
+      my $color_value_neg = $color_value ^ 0xFF;
+      my $color = Imager::Color->new($color_value_neg, $color_value_neg, $color_value_neg);
+      
+      # ピクセル描画
+      $img->setpixel(x => $row, y => $column, color => $color);
+    }
+  }
+  # Web表示できるようにPNGとして保存
+  my $bitmap_file = "$FindBin::Bin/tmp_images/number$i.png";
+  $img->write(file => $bitmap_file);
+}
+
