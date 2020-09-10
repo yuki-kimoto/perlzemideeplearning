@@ -1,6 +1,6 @@
 <h2>二乗和誤差を求める - 損失関数</h2>
 
-二乗和誤差を求める関数をPerlで書いてみましょう。平均二乗誤差は、出力結果と期待される出力結果(正しい答え)の誤差を計算するために使用する<a href="/blog/20200901120907.html">損失関数</a>の一つです。
+二乗和誤差を求める関数をPerlで書いてみましょう。二乗和誤差は、出力結果と期待される出力結果(正しい答え)の誤差を計算するために使用する<a href="/blog/20200901120907.html">損失関数</a>の一つです。
 
 <pre>
 use strict;
@@ -18,9 +18,9 @@ sub sum_of_square_error {
   for (my $i = 0; $i < @$outputs; $i++) {
     $total_pow2 += ($outputs->[$i] - $desired_outputs->[$i]) ** 2;
   }
-  my $mean_square_error = 0.5 * $total_pow2;
+  my $sum_of_square_error = 0.5 * $total_pow2;
   
-  return $mean_square_error;
+  return $sum_of_square_error;
 }
 
 my $outputs = [0.7, 0.2, 0.1];
