@@ -5,11 +5,14 @@ ReLU関数をPerlで書いてみます。ReLU関数は<a href="/blog/20200902120
 ReLU関数は、値が0より大きい場合はその値を、0以下の場合は0を返す関数です。
 
 <pre>
+use strict;
+use warnings;
+
 # ReLU関数
 sub relu {
-  my ($z) = @_;
+  my ($x) = @_;
   
-  my $relu = $z > 0 ? $z : 0;
+  my $relu = $x * ($x > 0.0);
   
   return $relu;
 }

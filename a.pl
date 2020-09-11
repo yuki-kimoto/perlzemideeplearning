@@ -3,9 +3,9 @@ use warnings;
 
 # ReLU関数
 sub relu {
-  my ($z) = @_;
+  my ($x) = @_;
   
-  my $relu = $z > 0 ? $z : 0;
+  my $relu = $x * ($x > 0.0);
   
   return $relu;
 }
