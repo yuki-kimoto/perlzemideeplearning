@@ -1,0 +1,30 @@
+<h2>ReLU関数 - 活性化関数</h2>
+
+ReLU関数をPerlで書いてみます。ReLU関数は<a href="/blog/20200902120907.html">活性化関数</a>の一つです。
+
+ReLU関数は、値が0より大きい場合はその値を、0以下の場合は0を返す関数です。
+
+<pre>
+# ReLU関数
+sub relu {
+  my ($z) = @_;
+  
+  my $relu = $z > 0 ? $z : 0;
+  
+  return $relu;
+}
+
+my $value1 = 0.7;
+my $relu1 = relu($value1);
+
+print "$relu1\n";
+
+my $value2 = -0.4;
+my $relu2 = relu($value2);
+
+print "$relu2\n";
+</pre>
+
+ReLU関数は、ロジックが簡単で、計算量が少なく、効果が高い活性化関数として知られています。
+
+ReLU関数は隠れ層における活性化関数として利用されますが、出力層で出力を作成する場合にも利用することができます。
