@@ -1,6 +1,29 @@
 use strict;
 use warnings;
 
+sub relu_derivative {
+  my ($x) = @_;
+  
+  my $relu_derivative = 1 * ($x > 0.0);
+  
+  return $relu_derivative;
+}
+
+my $value1 = 0.7;
+my $relu_derivative1 = relu_derivative($value1);
+
+print "$relu_derivative1\n";
+
+my $value2 = -0.4;
+my $relu_derivative2 = relu_derivative($value2);
+
+print "$relu_derivative2\n";
+
+__END__
+
+use strict;
+use warnings;
+
 # ReLU関数
 sub relu {
   my ($x) = @_;

@@ -4,10 +4,24 @@
 
 <pre>
 sub sigmoid {
-  my ($z) = @_;
+  my ($x) = @_;
   
-  my $sigmoid = 1.0 / (1.0 + exp(-$z));
+  my $sigmoid = 1.0 / (1.0 + exp(-$x));
   
   return $sigmoid;
+}
+</pre>
+
+<h3>シグモイド関数の導関数</h3>
+
+シグモイド関数の導関数をPerlで書いてみます。導関数とは、関数を微分したものを意味します。シグモイド関数の導関数は、バックプロパゲーションに利用します。
+
+<pre>
+sub sigmoid_derivative {
+  my ($x) = @_;
+  
+  my $sigmoid_derivative = sigmoid($x) * (1 - sigmoid($x))
+  
+  return $sigmoid_derivative;
 }
 </pre>
