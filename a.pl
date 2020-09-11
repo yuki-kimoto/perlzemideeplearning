@@ -1,6 +1,27 @@
 use strict;
 use warnings;
 
+# ReLU関数
+sub relu {
+  my ($z) = @_;
+  
+  my $relu = $z > 0 ? $z : 0;
+  
+  return $relu;
+}
+
+my $value1 = 0.7;
+my $relu1 = relu($value1);
+
+print "$relu1\n";
+
+my $value2 = -0.4;
+my $relu2 = relu($value2);
+
+print "$relu2\n";
+
+__END__
+
 sub cross_entropy_cost_delta {
   my ($outputs, $activate_outputs, $desired_outputs) = @_;
 
