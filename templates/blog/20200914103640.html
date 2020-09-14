@@ -1,0 +1,72 @@
+<h2>行列の積の計算</h2>
+
+ディープラーニングに必要な行列の積をPerlで求める方法を解説します。
+
+重み行列と入力ベクトルの掛け算を行う場合に、必要です。
+
+行列の計算にはいくつかの条件を設けておきます。
+
+一つ目は、列優先の行列であるということです。列優先の行列というのは、列方向の向きにデータを持つということです。
+
+<pre>
+# 数学の行列表現
+# 1 4
+# 2 5
+# 3 6
+
+# 列優先でのデータのもちかた
+my $values = [1, 2, 3, 4, 5, 6];
+my $rows_length = 3;
+my $columns_length = 2;
+</pre>
+
+列優先にしておく理由は、BLASという行列計算ライブラリを使う場合と、整合性をとるためです。
+
+まずPerlで、行列演算を行い。それをSPVMに移植します。そして、最後に、BLUSと呼ばれるC言語ライブラリや、cuBLUSと呼ばれるcudaのGPUの計算を行えるライブラリに移植可能なようにします。
+
+<h3>行列の積を求める</h3>
+
+行列の積を求めましょう。3×2の行列と、2×1の行列(つまりベクトル)の積を求めます。
+
+<pre>
+use strict;
+use warnings;
+
+# 重み(3行2列の行列)
+# 1 4
+# 2 5
+# 3 6
+my $weights = [1, 2, 3, 4, 5, 6];
+my $weights_rows_length = 3;
+my $weights_columns_length = 2;
+
+# 入力ベクトル(2行1列の行列)
+# 7
+# 8
+my $inputs = [7, 8];
+my $inputs_rows_length = 2;
+my $inputs_columns_length = 1;
+
+# 計算方法
+# 1 * 7 + 4 * 8
+# 2 * 7 + 5 * 8
+# 3 * 7 + 6 * 8
+my $outputs = [];
+
+# 行列の積の計算
+for(my $row = 0; $row < $weights_rows_length; $row++) {
+  for(my $col = 0; $col < $inputs_columns_length; $col++) {
+    for(my $incol = 0; $incol < $weights_columns_length; $incol++) {
+      $outputs->[$row + $col * $inputs_rows_length]
+       += $weights->[$row + $incol * $weights_rows_length] * $inputs->[$incol + $col * $inputs_rows_length];
+    }
+  }
+}
+
+# 40 54 69
+print "@$outputs\n";
+</pre>
+
+Perlでの行列の積の計算には、C言語で書かれた行列の積の計算アルゴリズムがありましたので、それを流用しました。
+
+行列の積の計算は、一般には、3重ループになります。ただし、入力ベクトルは、2行1列の行列ですので、この場合は、二重ループになります。
