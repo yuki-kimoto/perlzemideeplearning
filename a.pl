@@ -1,6 +1,43 @@
 use strict;
 use warnings;
 
+# 重み行列と入力ベクトルの行列積の結果のベクトル
+my $mul_weight_inputs = [4, 5, 6, 7];
+
+# バイアスのベクトル
+my $biases = [3, 6, 9, 2];
+
+# 出力ベクトル
+my $outputs = [];
+
+for (my $i = 0; $i < @$mul_weight_inputs; $i++) {
+  $outputs->[$i] = $mul_weight_inputs->[$i] + $biases->[$i];
+}
+
+print "@$outputs\n";
+
+__END__
+
+use strict;
+use warnings;
+
+# 重み行列と入力ベクトルの行列積の結果のベクトル
+my $mul_weight_inputs = [4, 5, 6, 7];
+
+# バイアスのベクトル
+my $biases = [3, 6, 9, 2];
+
+# 出力ベクトル
+my $outputs = [];
+
+for (my $i = 0; $i < @$vec1; $i++) {
+  $outputs->[$i] = $mul_weight_inputs->[$i] + $biases->[$i];
+}
+
+print "@$outputs\n";
+
+__END__
+
 sub relu_derivative {
   my ($x) = @_;
   
