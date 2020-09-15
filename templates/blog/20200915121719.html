@@ -8,9 +8,25 @@
 
 ディープラーニングの解説では、入力層と隠れ層と出力層の図が必ずでてきます。ただし、この図は、概念的な図であって、実際のプログラムにおけるデータ構造を適切に表現しているわけではありません。
 
-プログラムを書く上で、知っておかなければならない情報は、次の３つです。
+プログラムを書く上で、知っておかなければならない情報は、次の情報です。
 
-「入力数」と「隠れ層の各層のニューロン数」と「出力数」です。
+「入力数」と「隠れ層の出力数」です。
+
+<pre>
+* * *     (入力。3つ)
+
+隠れ層0
+
+* * * * * (隠れ層0の出力。5つ。隠れ層0のニューロン数に対応)
+
+隠れ層1
+
+* * *     (隠れ層1の出力。3つ。隠れ層1ニューロン数に対応)
+
+隠れ層2
+
+* *       (隠れ層2の出力。これが最終出力。隠れ層2ニューロン数に対応)
+</pre>
 
 個々のデータはすべて32bit浮動小数点で表現されます。C言語でいうところのfloat型です。
 
@@ -20,7 +36,7 @@
 
 <h4>隠れ層の各層のニューロンの数</h4>
 
-隠れ層のニューロン数は、自分で決めます。3層あったとすると1層目は100、2層目は150、3層目は120のように任意で決めます。
+隠れ層のニューロン数は、自分で決めます。3層あったとすると0層目は100、1層目は150、2層目は120のように任意で決めます。
 
 <h4>出力数</h4>
 
@@ -82,3 +98,111 @@ for (my $i = 0; $i < @$outputs; $i++) {
 
 では、ディープラーニングで、初期入力から最終出力を得るプログラムをPerlで書いてみましょう。活性化関数には<a href="/blog/20200911102242.html">ReLU</a>を使います。
 
+重みとバイアスは、自動的に求めることができますが、ここでは、簡便のために、ベタで書きます。
+
+入力数が2、隠れ層の各層の出力数を「3, 2」とします。隠れ層の最後の出力が、最終出力になります。
+
+<pre>
+use strict;
+use warnings;
+
+my $first_inputs = [0.1, 0.2];
+
+# 隠れ層の重みとバイアス
+my $layers = [
+  # 隠れ層0層(2入力を3出力へ)
+  {
+    weights => [
+      0.6, 0.2, 0.4,
+      0.4, 0.3, 0.7
+    ],
+    weights_rows_length => 3,
+    weights_columns_length => 2,
+    biases => [0.5, 0.2, 0.8]
+  },
+  # 隠れ層1層(3入力を2出力へ)
+  {
+    weights => [
+      0.8, 0.2, 0.2,
+      0.2, 0.1, 0.6
+    ],
+    weights_rows_length => 2,
+    weights_columns_length => 3,
+    biases => [0.5, 0.1]
+  },
+];
+
+# 初期入力から最終出力を得る
+my $inputs = $first_inputs;
+my $outputs;
+for (my $i = 0; $i < @$layers; $i++) {
+  my $layer = $layers->[$i];
+  
+  # 重み
+  my $weights = $layer->{weights};
+  my $weights_rows_length = $layer->{weights_rows_length};
+  my $weights_columns_length = $layer->{weights_columns_length};
+  
+  # バイアス
+  my $biases = $layer->{biases};
+  
+  # 出力 = 重み行列 * 入力 + バイアス
+  my $mul_weight_inputs = mul_mat($weights, $weights_rows_length, $weights_columns_length, $inputs);
+  $outputs = add_vec($mul_weight_inputs, $biases);
+  
+  # 活性化関数を適用
+  my $activate_outputs = [];
+  for (my $i = 0; $i < @$outputs; $i++) {
+    $activate_outputs->[$i] = relu($outputs->[$i]);
+  }
+  
+  # 出力を次の入力へ
+  $inputs = $activate_outputs;
+}
+
+# 最終出力を表示 1.166 0.872
+print "@$outputs\n";
+
+# 活性化関数 ReLU
+sub relu {
+  my ($x) = @_;
+  
+  my $relu = $x * ($x > 0.0);
+  
+  return $relu;
+}
+
+# ベクトルの和
+sub add_vec {
+  my ($mul_weight_inputs, $biases) = @_;
+  
+  my $outputs = [];
+  for (my $i = 0; $i < @$mul_weight_inputs; $i++) {
+    $outputs->[$i] = $mul_weight_inputs->[$i] + $biases->[$i];
+  }
+  
+  return $outputs;
+}
+
+# 行列の積(行列とベクトルの掛け算)
+sub mul_mat {
+  my ($weights, $weights_rows_length, $weights_columns_length, $inputs) = @_;
+  
+  my $inputs_rows_length = @$inputs;
+  my $inputs_columns_length = 1;
+
+  my $outputs = [];
+  
+  # 行列の積の計算
+  for(my $row = 0; $row < $weights_rows_length; $row++) {
+    for(my $col = 0; $col < $inputs_columns_length; $col++) {
+      for(my $incol = 0; $incol < $weights_columns_length; $incol++) {
+        $outputs->[$row + $col * $inputs_rows_length]
+         += $weights->[$row + $incol * $weights_rows_length] * $inputs->[$incol + $col * $inputs_rows_length];
+      }
+    }
+  }
+  
+  return $outputs;
+}
+</pre>
