@@ -1,6 +1,30 @@
 use strict;
 use warnings;
 
+sub probabilize_output {
+  my ($outputs_length, $desired_value) = @_;
+  
+  my $probabilized_outputs = [];
+  for (my $i = 0; $i < $outputs_length; $i++) {
+    $probabilized_outputs->[$i] = $desired_value == $i ? 1 : 0;
+  }
+  
+  return $probabilized_outputs;
+}
+
+my $outputs_length = 10;
+my $desired_value = 4;
+
+my $probabilized_outputs = probabilize_output($outputs_length, $desired_value);
+
+# 0 0 0 0 1 0 0 0 0 0
+print "@$probabilized_outputs\n";
+
+__END__
+
+use strict;
+use warnings;
+
 # 重み(3行2列の行列)
 # 1 4
 # 2 5
