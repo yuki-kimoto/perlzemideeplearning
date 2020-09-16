@@ -1,6 +1,45 @@
 use strict;
 use warnings;
 
+# 重み(3行2列の行列)
+# 1 4
+# 2 5
+# 3 6
+my $weights = [1, 2, 3, 4, 5, 6];
+my $weights_rows_length = 3;
+my $weights_columns_length = 2;
+
+# 入力ベクトル(2行1列の行列)
+# 7
+# 8
+my $inputs = [7, 8];
+my $inputs_rows_length = 2;
+my $inputs_columns_length = 1;
+
+# 計算方法
+# 1 * 7 + 4 * 8
+# 2 * 7 + 5 * 8
+# 3 * 7 + 6 * 8
+my $outputs = [];
+
+# 行列の積の計算
+for(my $row = 0; $row < $weights_rows_length; $row++) {
+  for(my $col = 0; $col < $inputs_columns_length; $col++) {
+    for(my $incol = 0; $incol < $weights_columns_length; $incol++) {
+      $outputs->[$row + $col * $inputs_rows_length]
+       += $weights->[$row + $incol * $weights_rows_length] * $inputs->[$incol + $col * $inputs_rows_length];
+    }
+  }
+}
+
+# 39 54 69
+print "@$outputs\n";
+
+__END__
+
+use strict;
+use warnings;
+
 my $first_inputs = [0.1, 0.2];
 
 # 隠れ層の重みとバイアス
