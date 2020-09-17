@@ -1,6 +1,60 @@
 use strict;
 use warnings;
 
+# ベクトルの差
+sub vec_sub {
+  my ($vec1, $vec2) = @_;
+
+  my $vec_sub = [];
+
+  for (my $i = 0; $i < @$vec1; $i++) {
+    $vec_sub->[$i] = $vec1->[$i] - $vec2->[$i];
+  }
+  
+  return $vec_sub;
+}
+
+my $vec1 = [1, 2, 3];
+my $vec2 = [4, 5, 6];
+
+# ベクトルの差
+my $vec_sub = vec_sub($vec1, $vec2);
+
+# 5 7 9
+print "@$vec_sub\n";
+
+
+__END__
+use strict;
+use warnings;
+
+# ベクトルの和
+sub vec_add {
+  my ($vec1, $vec2) = @_;
+
+  my $vec_add = [];
+
+  for (my $i = 0; $i < @$vec1; $i++) {
+    $vec_add->[$i] = $vec1->[$i] + $vec2->[$i];
+  }
+  
+  return $vec_add;
+}
+
+my $vec1 = [1, 2, 3];
+my $vec2 = [4, 5, 6];
+
+# ベクトルの和
+my $vec_add = vec_add($vec1, $vec2);
+
+# 5 7 9
+print "@$vec_add\n";
+
+__END__
+
+use strict;
+use warnings;
+
 sub mat_add {
   my ($mat1, $mat2) = @_;
   
