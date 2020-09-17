@@ -1,6 +1,45 @@
 use strict;
 use warnings;
 
+sub transpose {
+  my ($mat) = @_;
+  
+  my $rows_length = $mat->{rows_length};
+  my $columns_length = $mat->{columns_length};
+  my $length = $rows_length * $columns_length;
+  
+  my $mat_trans ={};
+  $mat_trans->{rows_length} = $columns_length;
+  $mat_trans->{columns_length} = $rows_length;
+  
+  my $values = $mat->{values};
+  my $mat_trans_values = [];
+  
+  for (my $row_index = 0; $row_index < $rows_length; $row_index++) {
+    for (my $column_index = 0; $column_index < $columns_length; $column_index++) {
+      $mat_trans_values->[$row_index * $columns_length + $column_index] = $values->[$column_index * $rows_length+ $row_index];
+    }
+  }
+  $mat_trans->{values} = $mat_trans_values;
+  
+  return $mat_trans;
+}
+
+my $mat = {
+  values => [1, 2, 3, 4, 5, 6],
+  rows_length => 3,
+  columns_length => 2,
+};
+
+my $mat_trans = transpose($mat);
+
+print "Row:$mat_trans->{rows_length}, Column:$mat_trans->{columns_length}, Values:@{$mat_trans->{values}}\n";
+
+__END__
+
+use strict;
+use warnings;
+
 sub probabilize_output {
   my ($outputs_length, $desired_value) = @_;
   
