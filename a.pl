@@ -1,6 +1,62 @@
 use strict;
 use warnings;
 
+sub mat_add {
+  my ($mat1, $mat2) = @_;
+  
+  my $mat_out = {};
+  $mat_out->{rows_length} = $mat1->{rows_length};
+  $mat_out->{columns_length} = $mat2->{columns_length};
+  
+  for (my $i = 0; $i < @{$mat1->{values}}; $i++) {
+    $mat_out->{values}->[$i] = $mat1->{values}->[$i] + $mat2->{values}->[$i];
+  }
+  
+  return $mat_out;
+}
+
+sub mat_sub {
+  my ($mat1, $mat2) = @_;
+  
+  my $mat_out = {};
+  $mat_out->{rows_length} = $mat1->{rows_length};
+  $mat_out->{columns_length} = $mat2->{columns_length};
+  
+  for (my $i = 0; $i < @{$mat1->{values}}; $i++) {
+    $mat_out->{values}->[$i] = $mat1->{values}->[$i] - $mat2->{values}->[$i];
+  }
+  
+  return $mat_out;
+}
+
+my $mat1 = {
+  values => [1, 2, 3, 4, 5, 6],
+  rows_length => 3,
+  columns_length => 2,
+};
+
+my $mat2 = {
+  values => [7, 8, 9, 10, 11, 12],
+  rows_length => 3,
+  columns_length => 2,
+};
+
+my $mat_add = mat_add($mat1, $mat2);
+
+# [Matrix Add]Row:3, Column:2, Values:8 10 12 14 16 18
+print "[Matrix Add]Row:$mat_add->{rows_length}, Column:$mat_add->{columns_length}, Values:@{$mat_add->{values}}\n";
+
+
+my $mat_sub = mat_sub($mat1, $mat2);
+
+# [Matrix Subtract]Row:3, Column:2, Values:-6 -6 -6 -6 -6 -6
+print "[Matrix Subtract]Row:$mat_sub->{rows_length}, Column:$mat_sub->{columns_length}, Values:@{$mat_sub->{values}}\n";
+
+__END__
+
+use strict;
+use warnings;
+
 sub transpose {
   my ($mat) = @_;
   
