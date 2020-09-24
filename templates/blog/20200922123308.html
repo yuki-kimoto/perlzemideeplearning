@@ -12,7 +12,7 @@
 
 バックプロパゲーションをいくつかの要素に分けて考えていきましょう。
 
-<h3>最後の層の個々の重みとバイアスのパラメーターに対する損失関数の傾きを求める</h3>
+<h3>最終層の個々の重みとバイアスのパラメーターに対する損失関数の傾きを求める</h3>
 
 バックプロパゲーションは、後ろから進んでいきます。最終出力は損失関数です。損失関数は、誤差の指標になります。
 
@@ -65,3 +65,76 @@ for (my $i = 0; $i < @$biases; $i++) {
   $biase_grads->[$i] = activate_derivative($outputs->[0]) * cost_derivative($desired_outputs->[0], $activate_outputs->[0]);
 }
 </pre>
+
+<h4>重みに対する損失関数の傾き</h4>
+
+重みに対する損失関数の傾きを求めます。
+
+<pre>
+# ひとつの重みに対する損失関数の傾き0行0列 = 上記で求めたひとつのバイアスの傾き0 * ひとつの入力0
+my $weight_grads0 = $biase_grads->[0] * $inputs->[0];
+</pre>
+
+重みは、列優先の行列として表現されているので、forループは以下のようになります。
+
+<pre>
+my $weights_grads = [];
+for (my $input_index = 0; $input_index < $inputs_length; $input_index++) {
+  for (my $biase_index = 0; $biase_index < $biases_length; $biase_index++) {
+    my $weight_grad_index = $biase_index + ($input_index * $biases_length);
+    $weight_grads->[$weight_grad_index] = $biase_grads->[$biase_index] * $inputs->[$input_index];
+  }
+}
+</pre>
+
+これは、バイアスを縦ベクトルとみて、入力を横ベクトルとみた行列の掛け算としても表現できます。
+
+<pre>
+# バイアスの傾き
+1
+2
+3
+
+# 入力
+4 5 6 7
+
+# 重みに対する損失関数の傾き
+4  5  6  7
+8  10 12 14
+12 15 18 21
+</pre>
+
+このページの計算内容を現在試行錯誤中です。
+
+<h3>中間層の個々の重みとバイアスのパラメーターに対する損失関数の傾きを求める</h3>
+
+バックプロパゲーションでは、重みとバイアスの傾きを求めるために層を後ろ向きにたどっていきますが、上記で求めた、バイアスの傾きが利用されます。
+
+<pre>
+# 重み
+my $weights = [..., ..., ..., ..., ..., ..., ..., ..., ..., ..., ..., ...,];
+
+# バイアス
+my $biases = [..., ..., ...];
+
+# 入力
+my $inputs = [0.3, 0.2, 0, 0.5];
+
+# 出力
+my $outputs = vec_add(mat_mul($wieghts, $inputs), $biases);
+
+# 活性化された出力
+my $activate_outputs = activate($outputs);
+</pre>
+
+<h4>バイアスに対する損失関数の傾き</h4>
+
+<pre>
+バイアスに関する損失関数の傾き0 = 「次の層のバイアスの傾き0～n」と「現在の層の重みの0列0～n行」の内積
+</pre>
+
+<h4>重みに対する損失関数の傾き</h4>
+
+重みに対する損失関数の傾きの計算は、最後の層で求めた方法と同じです。
+
+(この記事の計算やコードは、試行錯誤中のものです。)
