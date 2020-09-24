@@ -31,6 +31,10 @@ my $cost_func_derivative = \&cross_entropy_cost_derivative;
 # 0～9の10個に分類する          (出力層)
 my $neurons_length_in_layers = [728, 30, 10];
 
+# 重みの初期化 - 重みは各層の入力から出力への変換に利用されるので、重みの組の数は、入力層、隠れ層、出力層の合計より1小さいことに注意。
+
+# バイアスの初期化 - バイアスは各層の入力から出力への変換に利用されるので、バイアスの組の数は、入力層、隠れ層、出力層の合計より1小さいことに注意。
+
 # MNIEST画像情報を読み込む - 入力用につかう手書きの訓練データ
 my $mnist_train_image_file = "$FindBin::Bin/data/train-images-idx3-ubyte";
 my $mnist_train_image_info = load_mnist_train_image_file($mnist_train_image_file);
@@ -38,12 +42,6 @@ my $mnist_train_image_info = load_mnist_train_image_file($mnist_train_image_file
 # MNIESTラベル情報を読み込む - 手書きの訓練データの期待される出力
 my $mnist_train_label_file = "$FindBin::Bin/data/train-labels-idx1-ubyte";
 my $mnist_train_label_info = load_mnist_train_label_file($mnist_train_label_file);
-
-
-
-# 重みの初期化 - 重みは各層の入力から出力への変換に利用されるので、重みの組の数は、入力層、隠れ層、出力層の合計より1小さいことに注意。
-
-# バイアスの初期化 - バイアスは各層の入力から出力への変換に利用されるので、バイアスの組の数は、入力層、隠れ層、出力層の合計より1小さいことに注意。
 
 # シグモイド関数
 sub sigmoid {
@@ -132,6 +130,15 @@ sub load_mnist_train_image_file {
   return $image_info;
 }
 
+# 正規分布に従う乱数を求める関数
+# $sigma は標準偏差、$m は平均
+sub randn {
+  my ($m, $sigma) = @_;
+  my ($r1, $r2) = (rand(), rand());
+  while ($r1 == 0) { $r1 = rand(); }
+  return ($sigma * sqrt(-2 * log($r1)) * sin(2 * 3.14159265359 * $r2)) + $m;
+}
+
 # MNIST画像情報を読み込む
 sub load_mnist_train_label_file {
   my ($mnist_label_file) = @_;
@@ -164,3 +171,51 @@ sub load_mnist_train_label_file {
   $label_info->{items_count} = $items_count;
   $label_info->{label_numbers} = $label_numbers;
 }
+
+sub init_weights {
+  my $x = [0.5, 0.8];
+  my $y = [0, 0, 0];
+  my $x_len = @$x;
+  my $y_len = @$y;
+
+  my $w = [];
+  for (my $i = 0; $i < $x_len * $y_len; $i++) {
+    my $w_init_value = randn(0, sqrt(2/$x_len));
+    push @$w, $w_init_value;
+  }
+
+  print STDERR Dumper($w);
+
+  my $b = [
+    0,
+    0,
+    0
+  ];
+
+  for (my $y_index = 0; $y_index < $y_len; $y_index++) {
+    my $total = 0;
+    for (my $x_index = 0; $x_index < $x_len; $x_index++) {
+      $total += ($w->[$x_len * $y_index + $x_index] * $x->[$x_index]);
+    }
+    $total +=  $b->[$y_index];
+    $y->[$y_index] = $total > 0 ? $total : 0;
+  }
+
+  print "($y->[0], $y->[1], $y->[2])\n";
+
+  </pre>
+
+  出力結果の例。
+
+  <pre>
+  $VAR1 = [
+            '0.152110884289137',
+            '2.40437412125725',
+            '1.47474871999698',
+            '0.30283258213298',
+            '-0.274498796676187',
+            '-1.27516026508991'
+          ];
+  (1.99955473915037, 0.979640425704874, 0)
+}
+
