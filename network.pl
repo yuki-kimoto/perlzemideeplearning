@@ -32,7 +32,7 @@ my $cost_func_derivative = \&cross_entropy_cost_derivative;
 my $neurons_length_in_layers = [728, 30, 10];
 
 # バイアスの初期化 - バイアスは各層の入力から出力への変換に利用されるので、バイアスの組の数は、入力層、隠れ層、出力層の合計より1小さいことに注意。
-# すべて0
+# 0で初期化
 my $biases_in_layers = [];
 for (my $layer_index = 0; $layer_index < @$neurons_length_in_layers - 1; $layer_index++) {
   my $output_neurons_length = $neurons_length_in_layers->[$layer_index + 1];
@@ -42,19 +42,19 @@ for (my $layer_index = 0; $layer_index < @$neurons_length_in_layers - 1; $layer_
   }
 }
 
-use D;du $biases_in_layers;
-
-=pod
 # 重みの初期化 - 重みは各層の入力から出力への変換に利用されるので、重みの組の数は、入力層、隠れ層、出力層の合計より1小さいことに注意。
+# Xivierの初期値で初期化
 my $weights_in_layers = [];
-for (my $layer_index = 0; $layer_index < @$neurons_length_in_layers - 1; $layer_index++) {
-  my $neurons_length = $neurons_length_in_layers->[$layer_index];
-  for (my $weight_index = 0; $weight_index < $neurons_length; $weight_index++) {
+for (my $layer_index = 0; $layer_index < @$neurons_length_in_layers; $layer_index++) {
+  my $input_neurons_length = $neurons_length_in_layers->[$layer_index];
+  my $output_neurons_length = $neurons_length_in_layers->[$layer_index];
+  my $weights_length = $input_neurons_length * $output_neurons_length;
+  for (my $weight_index = 0; $weight_index < $weights_length; $weight_index++) {
     $weights_in_layers->[$layer_index] ||= [];
-    $weights_in_layers->[$layer_index][$weight_index] = 0;
+    # Xivierの初期値で初期化
+    $weights_in_layers->[$layer_index][$weight_index] = randn(0, 1 / sqrt($input_neurons_length));
   }
 }
-=cut
 
 # MNIEST画像情報を読み込む - 入力用につかう手書きの訓練データ
 my $mnist_train_image_file = "$FindBin::Bin/data/train-images-idx3-ubyte";
@@ -152,7 +152,7 @@ sub load_mnist_train_image_file {
 }
 
 # 正規分布に従う乱数を求める関数
-# $sigma は標準偏差、$m は平均
+# $m は平均, $sigma は標準偏差、
 sub randn {
   my ($m, $sigma) = @_;
   my ($r1, $r2) = (rand(), rand());
@@ -192,52 +192,3 @@ sub load_mnist_train_label_file {
   $label_info->{items_count} = $items_count;
   $label_info->{label_numbers} = $label_numbers;
 }
-
-=pod
-sub init_weights {
-  my $x = [0.5, 0.8];
-  my $y = [0, 0, 0];
-  my $x_len = @$x;
-  my $y_len = @$y;
-
-  my $w = [];
-  for (my $i = 0; $i < $x_len * $y_len; $i++) {
-    my $w_init_value = randn(0, sqrt(2/$x_len));
-    push @$w, $w_init_value;
-  }
-
-  print STDERR Dumper($w);
-
-  my $b = [
-    0,
-    0,
-    0
-  ];
-
-  for (my $y_index = 0; $y_index < $y_len; $y_index++) {
-    my $total = 0;
-    for (my $x_index = 0; $x_index < $x_len; $x_index++) {
-      $total += ($w->[$x_len * $y_index + $x_index] * $x->[$x_index]);
-    }
-    $total +=  $b->[$y_index];
-    $y->[$y_index] = $total > 0 ? $total : 0;
-  }
-
-  print "($y->[0], $y->[1], $y->[2])\n";
-
-  </pre>
-
-  出力結果の例。
-
-  <pre>
-  $VAR1 = [
-            '0.152110884289137',
-            '2.40437412125725',
-            '1.47474871999698',
-            '0.30283258213298',
-            '-0.274498796676187',
-            '-1.27516026508991'
-          ];
-  (1.99955473915037, 0.979640425704874, 0)
-}
-=cut
