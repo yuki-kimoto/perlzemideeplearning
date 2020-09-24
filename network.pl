@@ -31,9 +31,19 @@ my $cost_func_derivative = \&cross_entropy_cost_derivative;
 # 0～9の10個に分類する          (出力層)
 my $neurons_length_in_layers = [728, 30, 10];
 
+# バイアスの初期化 - バイアスは各層の入力から出力への変換に利用されるので、バイアスの組の数は、入力層、隠れ層、出力層の合計より1小さいことに注意。
+# すべて0
+my $biases_in_layers = [];
+for (my $layer_index = 0; $layer_index < @$neurons_length_in_layers - 1; $layer_index++) {
+  my $neurons_length = $neurons_length_in_layers->[$layer_index];
+  for (my $biase_index = 0; $biase_index < $neurons_length; $biase_index++) {
+    $biases_in_layers->[$layer_index] ||= [];
+    $biases_in_layers->[$layer_index][$biase_index] = 0;
+  }
+}
+
 # 重みの初期化 - 重みは各層の入力から出力への変換に利用されるので、重みの組の数は、入力層、隠れ層、出力層の合計より1小さいことに注意。
 
-# バイアスの初期化 - バイアスは各層の入力から出力への変換に利用されるので、バイアスの組の数は、入力層、隠れ層、出力層の合計より1小さいことに注意。
 
 # MNIEST画像情報を読み込む - 入力用につかう手書きの訓練データ
 my $mnist_train_image_file = "$FindBin::Bin/data/train-images-idx3-ubyte";
@@ -172,6 +182,7 @@ sub load_mnist_train_label_file {
   $label_info->{label_numbers} = $label_numbers;
 }
 
+=pod
 sub init_weights {
   my $x = [0.5, 0.8];
   my $y = [0, 0, 0];
@@ -218,4 +229,4 @@ sub init_weights {
           ];
   (1.99955473915037, 0.979640425704874, 0)
 }
-
+=cut
