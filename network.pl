@@ -3,93 +3,36 @@ use warnings;
 
 use JSON::PP;
 
-sub vec_
+# 学習率
+my $learning_rate = 0.5;
 
-# ベクトルのマイナス
-sub vec_minus {
-  my ($vec) = @_;
-  
-  my $vec_out = [];
-  for (my $i = 0; $i < @$vec; $i++) {
-    $vec_out->[$i] = -$vec->[$i];
-  }
-  
-  return $vec_out;
-}
+# エポック数 - 訓練セットの実行回数
+my $epoch_count = 400;
 
-# ベクトルの要素の和を求める
-sub vec_sum {
-  my ($vec) = @_;
-  
-  my $total = 0;
-  for (my $i = 0; $i < @$vec; $i++) {
-    $total += $vec->[$i];
-  }
-  
-  return $total;
-}
+# ミニバッチサイズ
+my $mini_batch_size = 10;
 
-# ベクトルの長さを求める
-sub vec_len {
-  my ($vec) = @_;
-  
-  my $squared_sum = 0;
-  for (my $i = 0; $i < @$vec; $i++) {
-    $squared_sum += $vec->[$i] * $vec->[$i];
-  }
-  
-  my $vec_len = sqrt($squared_sum);
-  
-  return $vec_len;
-}
+# 活性化関数
+my $activate_func = &sigmoid;
 
-# ベクトルの足し算
-sub vec_add {
-  my ($vec1, $vec2) = @_;
-  
-  my $vec3 = [];
-  for (my $i = 0; $i < @$vec1; $i++) {
-    $vec3->[$i] = $vec1->[$i] + $vec1->[$i];
-  }
-  
-  return $vec3;
-}
+# 活性化関数の導関数
+my $activate_func_derivative = &sigmoid_derivative;
 
-# ベクトルの引き算
-sub vec_sub {
-  my ($vec1, $vec2) = @_;
-  
-  my $vec3 = [];
-  for (my $i = 0; $i < @$vec1; $i++) {
-    $vec3->[$i] = $vec1->[$i] - $vec1->[$i];
-  }
-  
-  return $vec3;
-}
+# 損失関数
+my $cost_func = &cross_entropy_cost;
 
-# ベクトルのlog
-sub vec_log {
-  my ($vec) = @_;
-  
-  my $vec_out = [];
-  for (my $i = 0; $i < @$vec; $i++) {
-    $vec_out->[$i] = log($vec->[$i]);
-  }
-  
-  return $vec_out;
-}
+# 損失関数の導関数
+my $cost_func_derivative = &cross_entropy_cost_derivative;
 
-# ベクトルのexp
-sub vec_exp {
-  my ($vec) = @_;
-  
-  my $vec_out = [];
-  for (my $i = 0; $i < @$vec; $i++) {
-    $vec_out->[$i] = exp($vec->[$i]);
-  }
-  
-  return $vec_out;
-}
+# 各層のニューロンの数
+# 28 * 28 = 728のモノクロ画像を (入力層)
+# 30個の中間出力を通って        (隠れ層)
+# 0～9の10個に分類する          (出力層)
+my $neurons_length_in_layers = [728, 30, 10];
+
+# 重みの初期化 - 重みは各層の入力から出力への変換に利用されるので、重みの組の数は、入力層、隠れ層、出力層の合計より1小さいことに注意。
+
+# バイアスの初期化 - バイアスは各層の入力から出力への変換に利用されるので、バイアスの組の数は、入力層、隠れ層、出力層の合計より1小さいことに注意。
 
 # シグモイド関数
 sub sigmoid {
