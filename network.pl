@@ -34,7 +34,7 @@ my $neurons_length_in_layers = [728, 30, 10];
 # バイアスの初期化 - バイアスは各層の入力から出力への変換に利用されるので、バイアスの組の数は、入力層、隠れ層、出力層の合計より1小さいことに注意。
 # すべて0
 my $biases_in_layers = [];
-for (my $layer_index = 0; $layer_index < @$neurons_length_in_layers - 1; $layer_index++) {
+for (my $layer_index = 1; $layer_index < @$neurons_length_in_layers; $layer_index++) {
   my $neurons_length = $neurons_length_in_layers->[$layer_index];
   for (my $biase_index = 0; $biase_index < $neurons_length; $biase_index++) {
     $biases_in_layers->[$layer_index] ||= [];
@@ -42,8 +42,17 @@ for (my $layer_index = 0; $layer_index < @$neurons_length_in_layers - 1; $layer_
   }
 }
 
+=pod
 # 重みの初期化 - 重みは各層の入力から出力への変換に利用されるので、重みの組の数は、入力層、隠れ層、出力層の合計より1小さいことに注意。
-
+my $weights_in_layers = [];
+for (my $layer_index = 0; $layer_index < @$neurons_length_in_layers - 1; $layer_index++) {
+  my $neurons_length = $neurons_length_in_layers->[$layer_index];
+  for (my $weight_index = 0; $weight_index < $neurons_length; $weight_index++) {
+    $weights_in_layers->[$layer_index] ||= [];
+    $weights_in_layers->[$layer_index][$weight_index] = 0;
+  }
+}
+=cut
 
 # MNIEST画像情報を読み込む - 入力用につかう手書きの訓練データ
 my $mnist_train_image_file = "$FindBin::Bin/data/train-images-idx3-ubyte";
