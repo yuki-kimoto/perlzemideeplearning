@@ -1,5 +1,6 @@
 use strict;
 use warnings;
+use FindBin;
 
 use JSON::PP;
 
@@ -13,22 +14,32 @@ my $epoch_count = 400;
 my $mini_batch_size = 10;
 
 # 活性化関数
-my $activate_func = &sigmoid;
+my $activate_func = \&sigmoid;
 
 # 活性化関数の導関数
-my $activate_func_derivative = &sigmoid_derivative;
+my $activate_func_derivative = \&sigmoid_derivative;
 
 # 損失関数
-my $cost_func = &cross_entropy_cost;
+my $cost_func = \&cross_entropy_cost;
 
 # 損失関数の導関数
-my $cost_func_derivative = &cross_entropy_cost_derivative;
+my $cost_func_derivative = \&cross_entropy_cost_derivative;
 
 # 各層のニューロンの数
 # 28 * 28 = 728のモノクロ画像を (入力層)
 # 30個の中間出力を通って        (隠れ層)
 # 0～9の10個に分類する          (出力層)
 my $neurons_length_in_layers = [728, 30, 10];
+
+# MNIEST画像情報を読み込む - 入力用につかう手書きの訓練データ
+my $mnist_train_image_file = "$FindBin::Bin/data/train-images-idx3-ubyte";
+my $mnist_train_image_info = load_mnist_train_image_file($mnist_train_image_file);
+
+# MNIESTラベル情報を読み込む - 手書きの訓練データの期待される出力
+my $mnist_train_label_file = "$FindBin::Bin/data/train-labels-idx1-ubyte";
+my $mnist_train_label_info = load_mnist_train_label_file($mnist_train_label_file);
+
+
 
 # 重みの初期化 - 重みは各層の入力から出力への変換に利用されるので、重みの組の数は、入力層、隠れ層、出力層の合計より1小さいことに注意。
 
@@ -74,4 +85,82 @@ sub cross_entropy_cost_derivative {
   }
   
   return $vec_out;
+}
+
+# MNIST画像情報を読み込む
+sub load_mnist_train_image_file {
+  my ($mnist_image_file) = @_;
+  
+  open my $mnist_image_fh, '<', $mnist_image_file
+    or die "Can't open file $mnist_image_file: $!";
+
+  # マジックナンバー
+  my $image_buffer;
+  read($mnist_image_fh, $image_buffer, 4);
+  my $magic_number = unpack('N1', $image_buffer);
+  if ($magic_number != 0x00000803) {
+    die "Invalid magic number expected " . 0x00000803 . "actual $magic_number";
+  }
+
+  # 画像数
+  read($mnist_image_fh, $image_buffer, 4);
+  my $items_count = unpack('N1', $image_buffer);
+
+  # 画像の行ピクセル数
+  read($mnist_image_fh, $image_buffer, 4);
+  my $rows_count = unpack('N1', $image_buffer);
+
+  # 画像の列ピクセル数
+  read($mnist_image_fh, $image_buffer, 4);
+  my $columns_count = unpack('N1', $image_buffer);
+
+  # 画像の読み込み
+  my $image_data;
+  my $all_images_length = $items_count * $rows_count * $columns_count;
+  my $read_length = read $mnist_image_fh, $image_data, $all_images_length;
+  unless ($read_length == $all_images_length) {
+    die "Can't read all images";
+  }
+
+  # 画像情報
+  my $image_info = {};
+  $image_info->{items_count} = $items_count;
+  $image_info->{rows_count} = $rows_count;
+  $image_info->{columns_count} = $columns_count;
+  $image_info->{data} = $image_data;
+  
+  return $image_info;
+}
+
+# MNIST画像情報を読み込む
+sub load_mnist_train_label_file {
+  my ($mnist_label_file) = @_;
+
+  open my $mnist_label_fh, '<', $mnist_label_file
+    or die "Can't open file $mnist_label_file: $!";
+
+  # マジックナンバー
+  my $label_buffer;
+  read($mnist_label_fh, $label_buffer, 4);
+  my $magic_number = unpack('N1', $label_buffer);
+  if ($magic_number != 0x00000801) {
+    die "Invalid magic number expected " . 0x00000801 . "actual $magic_number";
+  }
+
+  # ラベル数
+  read($mnist_label_fh, $label_buffer, 4);
+  my $items_count = unpack('N1', $label_buffer);
+
+  # ラベルの読み込み
+  my $label_numbers = [];
+  for (my $i = 0; $i < $items_count; $i++) {
+    read $mnist_label_fh, $label_buffer, 1;
+    my $label_number = unpack('C1', $label_buffer);
+    push @$label_numbers, $label_number;
+  }
+
+  # ラベル情報
+  my $label_info = {};
+  $label_info->{items_count} = $items_count;
+  $label_info->{label_numbers} = $label_numbers;
 }
