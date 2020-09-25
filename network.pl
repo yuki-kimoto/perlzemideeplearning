@@ -9,7 +9,7 @@ use JSON::PP;
 my $learning_rate = 0.5;
 
 # エポック数 - 訓練セットの実行回数
-my $epoch_count = 400;
+my $epoch_count = 1;
 
 # ミニバッチサイズ
 my $mini_batch_size = 10;
@@ -55,7 +55,7 @@ my $mnist_train_label_file = "$FindBin::Bin/data/train-labels-idx1-ubyte";
 my $mnist_train_label_info = load_mnist_train_label_file($mnist_train_label_file);
 
 # 訓練データのインデックス(最初の4万枚だけを訓練用データとして利用する。残りの1万枚は検証用データとする)
-my @training_data_indexes = (0 .. 39999);
+my @training_data_indexes = (0 .. 1000);
 
 # エポックの回数だけ訓練セットを実行
 for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
@@ -63,7 +63,10 @@ for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
   # 訓練データのインデックスをシャッフル(ランダムに学習させた方が汎用化するらしい)
   my @training_data_indexes_shuffle = shuffle @training_data_indexes;
   
+  my $count = 0;
+  
   # ミニバッチサイズ単位で学習
+  my $backprop_count = 0;
   while (my @indexed_for_mini_batch = splice(@training_data_indexes_shuffle, 0, $mini_batch_size)) {
     # ミニバッチにおけるバイアスの傾きの合計
     my $biase_grads_total_in_mini_batch = [];
@@ -71,10 +74,11 @@ for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
     # ミニバッチにおける重みの傾きの合計
     my $weight_grads_total_in_mini_batch = [];
     
-    for (my $training_data_index = 0; $training_data_index < @indexed_for_mini_batch; $training_data_index) {
+    for my $training_data_index (@indexed_for_mini_batch) {
       # バックプロパゲーションを使って重みとバイアスの損失関数に関する傾きを取得
       my $grads = backprop($neurons_length_in_layers, $mnist_train_image_info, $mnist_train_label_info, $training_data_index);
       
+=pod
       # バイアスの損失関数に関する傾き
       my $biase_grads = $grads->{biase};
       
@@ -98,6 +102,8 @@ for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
           $weights_in_layers->[$layer_index][$weight_index] -= ($learning_rate / $mini_batch_size) * $weight_grads->[$layer_index][$weight_index];
         }
       }
+=cut
+
     }
   }
 }
@@ -108,10 +114,10 @@ sub backprop {
   
   # 入力
   my $image_unit_length = $mnist_train_image_info->{rows_count} *  $mnist_train_image_info->{columns_count};
-  my $mnist_train_image_data = $mnist_train_label_info->{data};
+  my $mnist_train_image_data = $mnist_train_image_info->{data};
   my $first_inputs_packed = substr($mnist_train_image_data, $image_unit_length * $training_data_index, $image_unit_length);
-  my $first_inputs = unpakc("C$image_unit_length", $first_inputs_packed);
-
+  my $first_inputs = [unpack("C$image_unit_length", $first_inputs_packed)];
+  
   # 期待される出力(確率化する)
   my $label_number = $mnist_train_label_info->{label_numbers}[$training_data_index];
   my $desired_outputs = [];
@@ -125,32 +131,32 @@ sub backprop {
   }
   
   # バイアスの傾きを0で初期化
-  my $biases_in_layers = [];
+  my $biase_grads_in_layers = [];
   for (my $layer_index = 0; $layer_index < @$neurons_length_in_layers - 1; $layer_index++) {
     my $output_neurons_length = $neurons_length_in_layers->[$layer_index + 1];
     for (my $biase_index = 0; $biase_index < $output_neurons_length; $biase_index++) {
-      $biases_in_layers->[$layer_index] ||= [];
-      $biases_in_layers->[$layer_index][$biase_index] = 0;
+      $biase_grads_in_layers->[$layer_index] ||= [];
+      $biase_grads_in_layers->[$layer_index][$biase_index] = 0;
     }
   }
 
   # 重みの傾きを0で初期化
-  my $weights_in_layers = [];
+  my $weight_grads_in_layers = [];
   for (my $layer_index = 0; $layer_index < @$neurons_length_in_layers - 1; $layer_index++) {
     my $input_neurons_length = $neurons_length_in_layers->[$layer_index];
     my $output_neurons_length = $neurons_length_in_layers->[$layer_index + 1];
     my $weights_length = $input_neurons_length * $output_neurons_length;
     for (my $weight_index = 0; $weight_index < $weights_length; $weight_index++) {
-      $weights_in_layers->[$layer_index] ||= [];
-      $weights_in_layers->[$layer_index][$weight_index] = 0;
+      $weight_grads_in_layers->[$layer_index] ||= [];
+      $weight_grads_in_layers->[$layer_index][$weight_index] = 0;
     }
   }
 
   # 各層の出力
-  my $outputs_in_layers = [];
+  my $inputs_in_layers = [$first_inputs];
   
   # 各層の活性化された出力
-  my $activate_outputs_in_layers = [];
+  my $outputs_in_layers = [];
   
   # 入力層の入力から出力層の出力を求める
   # バックプロパゲーションのために各層の出力と活性化された出力を保存
@@ -162,10 +168,12 @@ sub backprop {
     # 重み
     my $weights = $weights_in_layers->[$layer_index];
     
-    $DB::single = 1;
-    
     # 重みと入力の行列積
-    my $mul_weights_inputs = mat_mul($weights, $cur_inputs);
+    my $weights_rows_length = $output_neurons_length;
+    my $weights_columns_length = $input_neurons_length;
+    my $cur_inputs_rows_length = $output_neurons_length;
+    my $cur_inputs_columns_length = 1;
+    my $mul_weights_inputs = mat_mul($weights, $weights_rows_length, $weights_columns_length, $cur_inputs, $cur_inputs_rows_length, $cur_inputs_columns_length);
     
     # バイアス
     my $biases = $biases_in_layers->[$layer_index];
@@ -174,13 +182,25 @@ sub backprop {
     # 活性化された出力 - 出力に活性化関数を適用
     my $outputs = [];
     my $activate_outputs = [];
-    for (my $biase_index = 0; $biase_index < @$biases; $biase_index) {
+    for (my $biase_index = 0; $biase_index < @$biases; $biase_index++) {
       my $output = $mul_weights_inputs->[$biase_index] + $biases->[$biase_index];
       $outputs->[$biase_index] = $output;
       $activate_outputs->[$biase_index] = sigmoid($output);
     }
+    
+    # バックプロパゲーションのために出力を保存
+    push @$outputs_in_layers, $outputs;
+    
+    # 現在の入力を更新
     $cur_inputs = $activate_outputs;
+    
+    # バックプロパゲーションのために現在の入力を保存
+    push @$inputs_in_layers, $cur_inputs;
   }
+  $DB::single = 1;
+  
+  my $grads;
+  return $grads;
 }
 
 
@@ -316,7 +336,7 @@ sub load_mnist_train_label_file {
 }
 
 sub mat_mul {
-  my ($weights, $weights_rows_length, $weights_columns_length, $inputs, $inputs_rows_length, $inputs_columns_length);
+  my ($weights, $weights_rows_length, $weights_columns_length, $inputs, $inputs_rows_length, $inputs_columns_length) = @_;
 
   # 計算方法
   my $outputs = [];
