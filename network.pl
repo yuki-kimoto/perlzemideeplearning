@@ -78,7 +78,6 @@ for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
       # バックプロパゲーションを使って重みとバイアスの損失関数に関する傾きを取得
       my $grads = backprop($neurons_length_in_layers, $mnist_train_image_info, $mnist_train_label_info, $training_data_index);
       
-=pod
       # バイアスの損失関数に関する傾き
       my $biase_grads = $grads->{biase};
       
@@ -102,8 +101,6 @@ for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
           $weights_in_layers->[$layer_index][$weight_index] -= ($learning_rate / $mini_batch_size) * $weight_grads->[$layer_index][$weight_index];
         }
       }
-=cut
-
     }
   }
 }
