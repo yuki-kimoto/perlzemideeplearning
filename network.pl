@@ -134,10 +134,7 @@ sub backprop {
   my $biase_grads_in_layers = [];
   for (my $layer_index = 0; $layer_index < @$neurons_length_in_layers - 1; $layer_index++) {
     my $output_neurons_length = $neurons_length_in_layers->[$layer_index + 1];
-    for (my $biase_index = 0; $biase_index < $output_neurons_length; $biase_index++) {
-      $biase_grads_in_layers->[$layer_index] ||= [];
-      $biase_grads_in_layers->[$layer_index][$biase_index] = 0;
-    }
+    $biase_grads_in_layers->[$layer_index] = [(0) x $output_neurons_length];
   }
 
   # 重みの傾きを0で初期化
@@ -146,13 +143,10 @@ sub backprop {
     my $input_neurons_length = $neurons_length_in_layers->[$layer_index];
     my $output_neurons_length = $neurons_length_in_layers->[$layer_index + 1];
     my $weights_length = $input_neurons_length * $output_neurons_length;
-    for (my $weight_index = 0; $weight_index < $weights_length; $weight_index++) {
-      $weight_grads_in_layers->[$layer_index] ||= [];
-      $weight_grads_in_layers->[$layer_index][$weight_index] = 0;
-    }
+    $weight_grads_in_layers->[$layer_index] = [(0) x $weights_length];
   }
 
-  # 各層の出力
+  # 各層の入力
   my $inputs_in_layers = [$first_inputs];
   
   # 各層の活性化された出力
@@ -160,8 +154,8 @@ sub backprop {
   
   # 入力層の入力から出力層の出力を求める
   # バックプロパゲーションのために各層の出力と活性化された出力を保存
-  my $cur_inputs = $first_inputs;
   for (my $layer_index = 0; $layer_index < @$neurons_length_in_layers - 1; $layer_index++) {
+    my $cur_inputs = $inputs_in_layers->[-1];
     my $input_neurons_length = $neurons_length_in_layers->[$layer_index];
     my $output_neurons_length = $neurons_length_in_layers->[$layer_index + 1];
     
@@ -194,10 +188,39 @@ sub backprop {
     # 現在の入力を更新
     $cur_inputs = $activate_outputs;
     
-    # バックプロパゲーションのために現在の入力を保存
-    push @$inputs_in_layers, $cur_inputs;
+    # バックプロパゲーションのために次の入力を保存
+    push @$inputs_in_layers, $activate_outputs;
   }
-  $DB::single = 1;
+  
+  # 最後の活性化された出力
+  my $last_activate_outputs = pop @$inputs_in_layers;
+  
+  # 活性化された出力の微小変化 / 最後の出力の微小変化 
+  my $grads_last_outputs_to_activate_func = sigmoid_derivative($outputs_in_layers->[-1]);
+  
+  # 損失関数の微小変化 / 最後に活性化された出力の微小変化
+  my $grads_last_activate_outputs_to_cost_func = cross_entropy_cost_derivative($last_activate_outputs, $desired_outputs);
+  
+  # 損失関数の微小変化 / 最後の出力の微小変化 (合成微分)
+  my $grads_last_outputs_to_cost_func = [];
+  for (my $i = 0; $i < @$grads_last_outputs_to_activate_func; $i++) {
+    $grads_last_outputs_to_cost_func->[$i] = $grads_last_outputs_to_activate_func->[$i] * $grads_last_activate_outputs_to_cost_func->[$i];
+  }
+  
+  # 損失関数の微小変化 / 最終の層のバイアスの微小変化
+  my $biase_grads = $grads_last_outputs_to_cost_func;
+  
+  # 損失関数の微小変化 / 最終の層の重みの微小変化
+  my $weights_grads = [];
+  my $last_inputs = $inputs_in_layers->[-1];
+  for (my $last_inputs_index = 0; $last_inputs_index < @$last_inputs; $last_inputs_index++) {
+    for (my $biase_grads_index = 0; $biase_grads_index < @$biase_grads; $biase_grads_index++) {
+      $weights_grads->[$biase_grads_index + @$biase_grads * $biase_grads_index]
+        = $biase_grads->[$biase_grads_index] * $last_inputs->[$last_inputs_index];
+    }
+  }
+  
+  
   
   my $grads;
   return $grads;
