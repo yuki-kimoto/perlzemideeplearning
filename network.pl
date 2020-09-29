@@ -419,12 +419,27 @@ sub load_mnist_train_label_file {
   return $label_info;
 }
 
+# 配列を0で初期化
 sub array_new_zero {
   my ($length) = @_;
   
   my $nums = [(0) x $length];
   
   return $nums;
+}
+
+# 行列を0で初期化
+sub mat_new_zero {
+  my ($rows_length, $columns_length) = @_;
+  
+  my $values_length = $rows_length * $columns_length;
+  my $mat = {
+    rows_length => $rows_length,
+    columns_length => $columns_length,
+    values => [(0) x $values_length],
+  };
+  
+  return $mat;
 }
 
 sub mat_mul {
