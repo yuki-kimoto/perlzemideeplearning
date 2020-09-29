@@ -55,7 +55,7 @@ my $mnist_train_label_file = "$FindBin::Bin/data/train-labels-idx1-ubyte";
 my $mnist_train_label_info = load_mnist_train_label_file($mnist_train_label_file);
 
 # 訓練データのインデックス(最初の4万枚だけを訓練用データとして利用する。残りの1万枚は検証用データとする)
-my @training_data_indexes = (0 .. 1000);
+my @training_data_indexes = (0 .. 40000);
 
 # エポックの回数だけ訓練セットを実行
 for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
@@ -198,7 +198,7 @@ sub backprop {
   # 誤差
   my $cost = cross_entropy_cost($last_activate_outputs, $desired_outputs);
   
-  print "Cost: $cost, Activate Output: @$last_activate_outputs\n";
+  print "Cost: $cost\n";
   
   # 活性化された出力の微小変化 / 最後の出力の微小変化 
   my $grads_last_outputs_to_activate_func = [];
