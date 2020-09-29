@@ -116,15 +116,7 @@ sub backprop {
   
   # 期待される出力(確率化する)
   my $label_number = $mnist_train_label_info->{label_numbers}[$training_data_index];
-  my $desired_outputs = [];
-  for (my $desired_outputs_index = 0; $desired_outputs_index < 10; $desired_outputs_index++) {
-    if ($label_number == $desired_outputs_index) {
-      $desired_outputs->[$desired_outputs_index] = 1;
-    }
-    else {
-      $desired_outputs->[$desired_outputs_index] = 0;
-    }
-  }
+  my $desired_outputs = probabilize_outputs($label_number);
   
   # バイアスの傾きを0で初期化
   my $biase_grads_in_layers = [];
@@ -267,6 +259,23 @@ sub backprop {
   return $grads;
 }
 
+sub probabilize_outputs {
+  my ($label_number) = @_;
+  
+  my $desired_outputs = [];
+  for (my $desired_outputs_index = 0; $desired_outputs_index < 10; $desired_outputs_index++) {
+    if ($label_number == $desired_outputs_index) {
+      $desired_outputs->[$desired_outputs_index] = 1;
+    }
+    else {
+      $desired_outputs->[$desired_outputs_index] = 0;
+    }
+  }
+  
+  return $desired_outputs;
+}
+
+# 配列の各要素の和
 sub array_add {
   my ($nums1, $nums2) = @_;
   
@@ -282,6 +291,7 @@ sub array_add {
   return $nums_out;
 }
 
+# 配列の各要素の積
 sub array_mul {
   my ($nums1, $nums2) = @_;
   
