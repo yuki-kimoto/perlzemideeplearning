@@ -1,0 +1,31 @@
+<h2>列優先の行列を作成する</h2>
+
+列優先の<a href="/blog/20200928161518.html">行列</a>を作成してみましょう。
+
+<pre>
+use strict;
+use warnings;
+
+# 列優先の行列の作成
+sub mat_new {
+  my ($values, $rows_length, $columns_length) = @_;
+  
+  my $mat = {
+    rows_length => $rows_length,
+    columns_length => $columns_length,
+    values => $values,
+  };
+  
+  return $mat;
+}
+
+# 3行2列の列優先の行列を作成
+# 1 4
+# 2 5
+# 3 6
+
+my $mat = mat_new([1, 2, 3, 4, 5, 6], 3, 2);
+
+use Data::Dumper;
+print Dumper $mat;
+</pre>

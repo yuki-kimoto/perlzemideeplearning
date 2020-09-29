@@ -1,6 +1,53 @@
 use strict;
 use warnings;
 
+# 列優先の行列の作成
+sub mat_new {
+  my ($values, $rows_length, $columns_length) = @_;
+  
+  my $mat = {
+    rows_length => $rows_length,
+    columns_length => $columns_length,
+    values => $values,
+  };
+  
+  return $mat;
+}
+
+# 3行2列の列優先の行列を作成
+# 1 4
+# 2 5
+# 3 6
+
+my $mat = mat_new([1, 2, 3, 4, 5, 6], 3, 2);
+
+use Data::Dumper;
+print Dumper $mat;
+
+
+__END__
+
+use strict;
+use warnings;
+
+# 列優先の行列表現
+my $mat_column_major = {
+  rows_length => 3,
+  columns_length => 2,
+  values => [1, 2, 3, 4, 5, 6],
+};
+
+# 行優先の行列表現
+my $mat_row_major = {
+  rows_length => 3,
+  columns_length => 2,
+  values => [1, 4, 2, 5, 3, 6],
+};
+
+use D;du [$mat_column_major, $mat_row_major];
+
+__END__
+
 # ベクトルの差
 sub vec_sub {
   my ($vec1, $vec2) = @_;

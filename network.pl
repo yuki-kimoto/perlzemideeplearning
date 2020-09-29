@@ -440,3 +440,16 @@ sub mat_mul {
   
   return $outputs;
 }
+
+# 列優先の行列の作成
+sub mat_new {
+  my ($values, $rows_length, $columns_length) = @_;
+  
+  my $mat = {
+    rows_length => $rows_length,
+    columns_length => $columns_length,
+    values => $values,
+  };
+  
+  return $mat;
+}
