@@ -170,14 +170,14 @@ sub backprop {
     my $biases = $biases_in_layers->[$layer_index];
     
     # 出力 - 重みと入力の行列積とバイアスの和
-    # 活性化された出力 - 出力に活性化関数を適用
     my $outputs = [];
-    my $activate_outputs = [];
     for (my $biase_index = 0; $biase_index < @$biases; $biase_index++) {
       my $output = $mul_weights_inputs->[$biase_index] + $biases->[$biase_index];
       $outputs->[$biase_index] = $output;
-      $activate_outputs->[$biase_index] = sigmoid($output);
     }
+    
+    # 活性化された出力 - 出力に活性化関数を適用
+    my $activate_outputs = array_sigmoid($outputs);
     
     # バックプロパゲーションのために出力を保存
     push @$outputs_in_layers, $outputs;
@@ -288,6 +288,30 @@ sub sigmoid_derivative {
   my $sigmoid_derivative = sigmoid($x) * (1 - sigmoid($x));
   
   return $sigmoid_derivative;
+}
+
+# 配列の各要素にシグモイド関数を適用する
+sub array_sigmoid {
+  my ($nums) = @_;
+  
+  my $nums_out = [];
+  for (my $i = 0; $i < @$nums; $i++) {
+    $nums_out->[$i] = sigmoid($nums->[$i]);
+  }
+  
+  return $nums_out;
+}
+
+# 配列の各要素にシグモイド関数の導関数を適用する
+sub array_sigmoid_derivative {
+  my ($nums) = @_;
+  
+  my $nums_out = [];
+  for (my $i = 0; $i < @$nums; $i++) {
+    $nums_out->[$i] = sigmoid_derivative($nums->[$i]);
+  }
+  
+  return $nums_out;
 }
 
 # クロスエントロピーコスト
