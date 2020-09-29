@@ -25,10 +25,7 @@ my $neurons_length_in_layers = [728, 30, 10];
 my $biases_in_layers = [];
 for (my $layer_index = 0; $layer_index < @$neurons_length_in_layers - 1; $layer_index++) {
   my $output_neurons_length = $neurons_length_in_layers->[$layer_index + 1];
-  for (my $biase_index = 0; $biase_index < $output_neurons_length; $biase_index++) {
-    $biases_in_layers->[$layer_index] ||= [];
-    $biases_in_layers->[$layer_index][$biase_index] = 0;
-  }
+  $biases_in_layers->[$layer_index] = array_new_zero($output_neurons_length);
 }
 
 # 重みの初期化 - 重みは各層の入力から出力への変換に利用されるので、重みの組の数は、入力層、隠れ層、出力層の合計より1小さいことに注意。
@@ -420,6 +417,14 @@ sub load_mnist_train_label_file {
   $label_info->{label_numbers} = $label_numbers;
   
   return $label_info;
+}
+
+sub array_new_zero {
+  my ($length) = @_;
+  
+  my $nums = [(0) x $length];
+  
+  return $nums;
 }
 
 sub mat_mul {
