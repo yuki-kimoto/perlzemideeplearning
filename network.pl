@@ -189,11 +189,17 @@ sub backprop {
     push @$inputs_in_layers, $activate_outputs;
   }
   
+  # 最後の出力
+  my $last_outputs = $outputs_in_layers->[-1];
+  
   # 最後の活性化された出力
   my $last_activate_outputs = pop @$inputs_in_layers;
   
   # 活性化された出力の微小変化 / 最後の出力の微小変化 
-  my $grads_last_outputs_to_activate_func = sigmoid_derivative($outputs_in_layers->[-1]);
+  my $grads_last_outputs_to_activate_func = [];
+  for (my $i = 0; $i < @$last_outputs; $i++) {
+    $grads_last_outputs_to_activate_func->[$i] = sigmoid_derivative($last_outputs->[$i]);
+  }
   
   # 損失関数の微小変化 / 最後に活性化された出力の微小変化
   my $grads_last_activate_outputs_to_cost_func = cross_entropy_cost_derivative($last_activate_outputs, $desired_outputs);
@@ -212,7 +218,7 @@ sub backprop {
   my $last_inputs = $inputs_in_layers->[-1];
   for (my $last_inputs_index = 0; $last_inputs_index < @$last_inputs; $last_inputs_index++) {
     for (my $last_biase_grads_index = 0; $last_biase_grads_index < @$last_biase_grads; $last_biase_grads_index++) {
-      $last_weight_grads->[$last_biase_grads_index + @$last_biase_grads * $last_biase_grads_index]
+      $last_weight_grads->[$last_biase_grads_index + @$last_biase_grads * $last_inputs_index]
         = $last_biase_grads->[$last_biase_grads_index] * $last_inputs->[$last_inputs_index];
     }
   }
