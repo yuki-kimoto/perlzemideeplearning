@@ -9,7 +9,7 @@ use JSON::PP;
 my $learning_rate = 0.5;
 
 # エポック数 - 訓練セットの実行回数
-my $epoch_count = 1;
+my $epoch_count = 400;
 
 # ミニバッチサイズ
 my $mini_batch_size = 10;
