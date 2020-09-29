@@ -201,10 +201,7 @@ sub backprop {
   print "Cost: $cost\n";
   
   # 活性化された出力の微小変化 / 最後の出力の微小変化 
-  my $grads_last_outputs_to_activate_func = [];
-  for (my $i = 0; $i < @$last_outputs; $i++) {
-    $grads_last_outputs_to_activate_func->[$i] = sigmoid_derivative($last_outputs->[$i]);
-  }
+  my $grads_last_outputs_to_activate_func = array_sigmoid_derivative($last_outputs);
   
   # 損失関数の微小変化 / 最後に活性化された出力の微小変化
   my $grads_last_activate_outputs_to_cost_func = cross_entropy_cost_derivative($last_activate_outputs, $desired_outputs);
@@ -248,10 +245,7 @@ sub backprop {
       }
     }
     
-    for (my $i = 0; $i < @$forword_biase_grads; $i++) {
-      # 活性化された出力の微小変化 / 出力の微小変化
-      $biase_grads->[$i] = sigmoid_derivative($biase_grads->[$i]);
-    }
+    $biase_grads = array_sigmoid_derivative($biase_grads);
     
     # 損失関数の微小変化 / この層の重みの微小変化(バックプロパゲーションで求める)
     my $weights_grads = [];
