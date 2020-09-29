@@ -82,7 +82,7 @@ for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
       my $biase_grads = $grads->{biase};
       
       # 重みの損失関数に関する傾き
-      my $weight_grads = $grads->{weights};
+      my $weight_grads = $grads->{weight};
       
       # 各層のバイアスを更新(学習率を考慮し、ミニバッチ数で割る)
       for (my $layer_index = 0; $layer_index < @$neurons_length_in_layers - 1; $layer_index++) {
@@ -95,12 +95,13 @@ for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
       # 各層の重みを更新(学習率を考慮し、傾きの合計をミニバッチ数で、ミニバッチ数で割る)
       for (my $layer_index = 0; $layer_index < @$neurons_length_in_layers - 1; $layer_index++) {
         my $input_neurons_length = $neurons_length_in_layers->[$layer_index];
-        my $output_neurons_length = $neurons_length_in_layers->[$layer_index];
+        my $output_neurons_length = $neurons_length_in_layers->[$layer_index + 1];
         my $weights_length = $input_neurons_length * $output_neurons_length;
         for (my $weight_index = 0; $weight_index < $weights_length; $weight_index++) {
           $weights_in_layers->[$layer_index][$weight_index] -= ($learning_rate / $mini_batch_size) * $weight_grads->[$layer_index][$weight_index];
         }
       }
+      1;
     }
   }
 }
@@ -223,10 +224,11 @@ sub backprop {
     }
   }
   
-  $biase_grads_in_layers->[-1] = $last_biase_grads;
-  $weight_grads_in_layers->[-1] = $last_weight_grads;
+  $biase_grads_in_layers->[@$biase_grads_in_layers - 1] = $last_biase_grads;
+  $weight_grads_in_layers->[@$biase_grads_in_layers - 1] = $last_weight_grads;
   
-  for (my $layer_index = @$neurons_length_in_layers - 2; $layer_index >= 0; $layer_index--) {
+  # 最後の重みとバイアスの変換より一つ前から始める
+  for (my $layer_index = @$neurons_length_in_layers - 3; $layer_index >= 0; $layer_index--) {
     # 活性化された出力の微小変化 / 出力の微小変化
     my $outputs = $outputs_in_layers->[$layer_index];
 
@@ -236,20 +238,23 @@ sub backprop {
     my $forword_biase_grads = $biase_grads_in_layers->[$layer_index + 1];
     my $forword_weight_grads = $weight_grads_in_layers->[$layer_index + 1];
     my $forword_weight_columns_length = @$forword_weight_grads / @$forword_biase_grads;
-    for (my $weight_columns_index = 0; $weight_columns_index < $forword_weight_columns_length; $weight_columns_index++) {
-      for (my $biase_index = 0; $biase_index < @$forword_biase_grads; $biase_index++) {
-        $biase_grads->[$biase_index] += $forword_biase_grads->[$biase_index] * $forword_weight_grads->[$biase_index + @$forword_biase_grads * $weight_columns_index];
+    for (my $biase_index = 0; $biase_index < @$forword_biase_grads; $biase_index++) {
+      for (my $weight_columns_index = 0; $weight_columns_index < $forword_weight_columns_length; $weight_columns_index++) {
+        $biase_grads->[$weight_columns_index] += $forword_biase_grads->[$biase_index] * $forword_weight_grads->[$biase_index + @$forword_biase_grads * $weight_columns_index];
       }
-      # 活性化された出力の微小変化 / 出力の微小変化
-      $biase_grads->[$weight_columns_index] = sigmoid_prime($biase_grads->[$weight_columns_index]);
     }
-
+    
+    for (my $i = 0; $i < @$forword_biase_grads; $i++) {
+      # 活性化された出力の微小変化 / 出力の微小変化
+      $biase_grads->[$i] = sigmoid_derivative($biase_grads->[$i]);
+    }
+    
     # 損失関数の微小変化 / この層の重みの微小変化(バックプロパゲーションで求める)
     my $weights_grads = [];
     my $inputs = $inputs_in_layers->[$layer_index];
     for (my $inputs_index = 0; $inputs_index < @$inputs; $inputs_index++) {
       for (my $biase_grads_index = 0; $biase_grads_index < @$biase_grads; $biase_grads_index++) {
-        $weights_grads->[$biase_grads_index + @$biase_grads * $biase_grads_index]
+        $weights_grads->[$biase_grads_index + @$biase_grads * $inputs_index]
           = $biase_grads->[$biase_grads_index] * $inputs->[$inputs_index];
       }
     }
