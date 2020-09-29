@@ -18,29 +18,31 @@ my $mini_batch_size = 10;
 # 28 * 28 = 728のモノクロ画像を (入力層)
 # 30個の中間出力を通って        (隠れ層)
 # 0～9の10個に分類する          (出力層)
-my $neurons_length_in_layers = [728, 30, 10];
+my $neurons_count_in_layers = [728, 30, 10];
 
-# バイアスの初期化 - バイアスは各層の入力から出力への変換に利用されるので、バイアスの組の数は、入力層、隠れ層、出力層の合計より1小さいことに注意。
-# 0で初期化
+# 各層のバイアス
 my $biases_in_layers = [];
-for (my $layer_index = 0; $layer_index < @$neurons_length_in_layers - 1; $layer_index++) {
-  my $output_neurons_length = $neurons_length_in_layers->[$layer_index + 1];
-  $biases_in_layers->[$layer_index] = array_new_zero($output_neurons_length);
-}
 
-# 重みの初期化 - 重みは各層の入力から出力への変換に利用されるので、重みの組の数は、入力層、隠れ層、出力層の合計より1小さいことに注意。
-# 重みは列優先の行列と考える
-# Xivierの初期値で初期化
-my $weights_in_layers = [];
-for (my $layer_index = 0; $layer_index < @$neurons_length_in_layers - 1; $layer_index++) {
-  my $input_neurons_length = $neurons_length_in_layers->[$layer_index];
-  my $output_neurons_length = $neurons_length_in_layers->[$layer_index + 1];
-  my $weights_length = $input_neurons_length * $output_neurons_length;
-  for (my $weight_index = 0; $weight_index < $weights_length; $weight_index++) {
-    $weights_in_layers->[$layer_index] ||= [];
-    # Xivierの初期値で初期化
-    $weights_in_layers->[$layer_index][$weight_index] = randn(0, 1 / sqrt($input_neurons_length));
-  }
+# 各層の重み
+my $weights_mat_in_layers = [];
+
+# 各層のバイアスと重みの初期化
+for (my $layer_index = 0; $layer_index < @$neurons_count_in_layers - 1; $layer_index++) {
+  my $input_neurons_count = $neurons_count_in_layers->[$layer_index];
+  my $output_neurons_count = $neurons_count_in_layers->[$layer_index + 1];
+  
+  # バイアスの初期化 - バイアスは各層の入力から出力への変換に利用されるので、バイアスの組の数は、入力層、隠れ層、出力層の合計より1小さいことに注意。
+  # 0で初期化
+  $biases_in_layers->[$layer_index] = array_new_zero($output_neurons_count);
+  
+  # 重みの初期化 - 重みは各層の入力から出力への変換に利用されるので、重みの組の数は、入力層、隠れ層、出力層の合計より1小さいことに注意。
+  # 重みは列優先の行列と考える
+  # Xivierの初期値で初期化
+  my $weights_mat = mat_new_zero($output_neurons_count, $input_neurons_count);
+  my $weights_length = $weights_mat->{rows_length} * $weights_mat->{columns_length};
+  $weights_mat->{values} = array_create_xivier_init_value($input_neurons_count, $weights_length);
+  
+  $weights_mat_in_layers->[$layer_index] = $weights_mat;
 }
 
 # MNIEST画像情報を読み込む - 入力用につかう手書きの訓練データ
@@ -73,7 +75,7 @@ for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
     
     for my $training_data_index (@indexed_for_mini_batch) {
       # バックプロパゲーションを使って重みとバイアスの損失関数に関する傾きを取得
-      my $grads = backprop($neurons_length_in_layers, $mnist_train_image_info, $mnist_train_label_info, $training_data_index);
+      my $grads = backprop($neurons_count_in_layers, $mnist_train_image_info, $mnist_train_label_info, $training_data_index);
       
       # バイアスの損失関数に関する傾き
       my $biase_grads = $grads->{biase};
@@ -82,20 +84,20 @@ for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
       my $weight_grads = $grads->{weight};
       
       # 各層のバイアスを更新(学習率を考慮し、ミニバッチ数で割る)
-      for (my $layer_index = 0; $layer_index < @$neurons_length_in_layers - 1; $layer_index++) {
-        my $output_neurons_length = $neurons_length_in_layers->[$layer_index + 1];
-        for (my $biase_index = 0; $biase_index < $output_neurons_length; $biase_index++) {
+      for (my $layer_index = 0; $layer_index < @$neurons_count_in_layers - 1; $layer_index++) {
+        my $output_neurons_count = $neurons_count_in_layers->[$layer_index + 1];
+        for (my $biase_index = 0; $biase_index < $output_neurons_count; $biase_index++) {
           $biases_in_layers->[$layer_index][$biase_index] -= ($learning_rate / $mini_batch_size) * $biase_grads->[$layer_index][$biase_index];
         }
       }
       
       # 各層の重みを更新(学習率を考慮し、傾きの合計をミニバッチ数で、ミニバッチ数で割る)
-      for (my $layer_index = 0; $layer_index < @$neurons_length_in_layers - 1; $layer_index++) {
-        my $input_neurons_length = $neurons_length_in_layers->[$layer_index];
-        my $output_neurons_length = $neurons_length_in_layers->[$layer_index + 1];
-        my $weights_length = $input_neurons_length * $output_neurons_length;
+      for (my $layer_index = 0; $layer_index < @$neurons_count_in_layers - 1; $layer_index++) {
+        my $input_neurons_count = $neurons_count_in_layers->[$layer_index];
+        my $output_neurons_count = $neurons_count_in_layers->[$layer_index + 1];
+        my $weights_length = $input_neurons_count * $output_neurons_count;
         for (my $weight_index = 0; $weight_index < $weights_length; $weight_index++) {
-          $weights_in_layers->[$layer_index][$weight_index] -= ($learning_rate / $mini_batch_size) * $weight_grads->[$layer_index][$weight_index];
+          $weights_mat_in_layers->[$layer_index]{values}[$weight_index] -= ($learning_rate / $mini_batch_size) * $weight_grads->[$layer_index][$weight_index];
         }
       }
     }
@@ -104,7 +106,7 @@ for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
 
 # バックプロパゲーション
 sub backprop {
-  my ($neurons_length_in_layers, $mnist_train_image_info, $mnist_train_label_info, $training_data_index) = @_;
+  my ($neurons_count_in_layers, $mnist_train_image_info, $mnist_train_label_info, $training_data_index) = @_;
   
   # 入力
   my $image_unit_length = $mnist_train_image_info->{rows_count} *  $mnist_train_image_info->{columns_count};
@@ -126,17 +128,17 @@ sub backprop {
   
   # バイアスの傾きを0で初期化
   my $biase_grads_in_layers = [];
-  for (my $layer_index = 0; $layer_index < @$neurons_length_in_layers - 1; $layer_index++) {
-    my $output_neurons_length = $neurons_length_in_layers->[$layer_index + 1];
-    $biase_grads_in_layers->[$layer_index] = [(0) x $output_neurons_length];
+  for (my $layer_index = 0; $layer_index < @$neurons_count_in_layers - 1; $layer_index++) {
+    my $output_neurons_count = $neurons_count_in_layers->[$layer_index + 1];
+    $biase_grads_in_layers->[$layer_index] = [(0) x $output_neurons_count];
   }
 
   # 重みの傾きを0で初期化
   my $weight_grads_in_layers = [];
-  for (my $layer_index = 0; $layer_index < @$neurons_length_in_layers - 1; $layer_index++) {
-    my $input_neurons_length = $neurons_length_in_layers->[$layer_index];
-    my $output_neurons_length = $neurons_length_in_layers->[$layer_index + 1];
-    my $weights_length = $input_neurons_length * $output_neurons_length;
+  for (my $layer_index = 0; $layer_index < @$neurons_count_in_layers - 1; $layer_index++) {
+    my $input_neurons_count = $neurons_count_in_layers->[$layer_index];
+    my $output_neurons_count = $neurons_count_in_layers->[$layer_index + 1];
+    my $weights_length = $input_neurons_count * $output_neurons_count;
     $weight_grads_in_layers->[$layer_index] = [(0) x $weights_length];
   }
 
@@ -148,30 +150,32 @@ sub backprop {
   
   # 入力層の入力から出力層の出力を求める
   # バックプロパゲーションのために各層の出力と活性化された出力を保存
-  for (my $layer_index = 0; $layer_index < @$neurons_length_in_layers - 1; $layer_index++) {
+  for (my $layer_index = 0; $layer_index < @$neurons_count_in_layers - 1; $layer_index++) {
     my $cur_inputs = $inputs_in_layers->[-1];
-    my $input_neurons_length = $neurons_length_in_layers->[$layer_index];
-    my $output_neurons_length = $neurons_length_in_layers->[$layer_index + 1];
+    my $input_neurons_count = $neurons_count_in_layers->[$layer_index];
+    my $output_neurons_count = $neurons_count_in_layers->[$layer_index + 1];
     
-    # 重み
-    my $weights = $weights_in_layers->[$layer_index];
+    # 重み行列
+    my $weights_mat = $weights_mat_in_layers->[$layer_index];
+    
+    # 入力行列
+    my $cur_inputs_rows_length = $output_neurons_count;
+    my $cur_inputs_columns_length = 1;
+    my $cur_inputs_mat = {
+      rows_length => $cur_inputs_rows_length,
+      columns_length => $cur_inputs_columns_length,
+      values => $cur_inputs,
+    };
     
     # 重みと入力の行列積
-    my $weights_rows_length = $output_neurons_length;
-    my $weights_columns_length = $input_neurons_length;
-    my $cur_inputs_rows_length = $output_neurons_length;
-    my $cur_inputs_columns_length = 1;
-    my $mul_weights_inputs = mat_mul($weights, $weights_rows_length, $weights_columns_length, $cur_inputs, $cur_inputs_rows_length, $cur_inputs_columns_length);
+    my $mul_weights_inputs_mat = mat_mul($weights_mat, $cur_inputs_mat);
+    my $mul_weights_inputs = $mul_weights_inputs_mat->{values};
     
     # バイアス
     my $biases = $biases_in_layers->[$layer_index];
     
     # 出力 - 重みと入力の行列積とバイアスの和
-    my $outputs = [];
-    for (my $biase_index = 0; $biase_index < @$biases; $biase_index++) {
-      my $output = $mul_weights_inputs->[$biase_index] + $biases->[$biase_index];
-      $outputs->[$biase_index] = $output;
-    }
+    my $outputs = array_add($mul_weights_inputs, $biases);
     
     # 活性化された出力 - 出力に活性化関数を適用
     my $activate_outputs = array_sigmoid($outputs);
@@ -226,7 +230,7 @@ sub backprop {
   $weight_grads_in_layers->[@$biase_grads_in_layers - 1] = $last_weight_grads;
   
   # 最後の重みとバイアスの変換より一つ前から始める
-  for (my $layer_index = @$neurons_length_in_layers - 3; $layer_index >= 0; $layer_index--) {
+  for (my $layer_index = @$neurons_count_in_layers - 3; $layer_index >= 0; $layer_index--) {
     # 活性化された出力の微小変化 / 出力の微小変化
     my $outputs = $outputs_in_layers->[$layer_index];
 
@@ -261,6 +265,55 @@ sub backprop {
   $grads->{weight} = $weight_grads_in_layers;
   
   return $grads;
+}
+
+sub array_add {
+  my ($nums1, $nums2) = @_;
+  
+  if (@$nums1 != @$nums2) {
+    die "Array length is diffent";
+  }
+  
+  my $nums_out = [];
+  for (my $i = 0; $i < @$nums1; $i++) {
+    $nums_out->[$i] = $nums1->[$i] + $nums2->[$i];
+  }
+  
+  return $nums_out;
+}
+
+sub array_mul {
+  my ($nums1, $nums2) = @_;
+  
+  if (@$nums1 != @$nums2) {
+    die "Array length is diffent";
+  }
+  
+  my $nums_out = [];
+  for (my $i = 0; $i < @$nums1; $i++) {
+    $nums_out->[$i] = $nums1->[$i] * $nums2->[$i];
+  }
+  
+  return $nums_out;
+}
+
+# Xivierの初期値を取得
+sub create_xivier_init_value {
+  my ($input_neurons_count) = @_;
+  
+  return randn(0, 1 / sqrt($input_neurons_count));
+}
+
+# 配列の各要素にXivierの初期値を取得を適用する
+sub array_create_xivier_init_value {
+  my ($input_neurons_count, $length) = @_;
+  
+  my $nums_out = [];
+  for (my $i = 0; $i < $length; $i++) {
+    $nums_out->[$i] = create_xivier_init_value($input_neurons_count);
+  }
+  
+  return $nums_out;
 }
 
 # シグモイド関数
@@ -443,22 +496,34 @@ sub mat_new_zero {
 }
 
 sub mat_mul {
-  my ($weights, $weights_rows_length, $weights_columns_length, $inputs, $inputs_rows_length, $inputs_columns_length) = @_;
-
-  # 計算方法
-  my $outputs = [];
-
+  my ($mat1, $mat2) = @_;
+  
+  my $mat1_rows_length = $mat1->{rows_length};
+  my $mat1_columns_length = $mat1->{columns_length};
+  my $mat1_values = $mat1->{values};
+  
+  my $mat2_rows_length = $mat2->{rows_length};
+  my $mat2_columns_length = $mat2->{columns_length};
+  my $mat2_values = $mat2->{values};
+  
   # 行列の積の計算
-  for(my $row = 0; $row < $weights_rows_length; $row++) {
-    for(my $col = 0; $col < $inputs_columns_length; $col++) {
-      for(my $incol = 0; $incol < $weights_columns_length; $incol++) {
-        $outputs->[$row + $col * $inputs_rows_length]
-         += $weights->[$row + $incol * $weights_rows_length] * $inputs->[$incol + $col * $inputs_rows_length];
+  my $mat_out_values = [];
+  for(my $row = 0; $row < $mat1_rows_length; $row++) {
+    for(my $col = 0; $col < $mat2_columns_length; $col++) {
+      for(my $incol = 0; $incol < $mat1_columns_length; $incol++) {
+        $mat_out_values->[$row + $col * $mat2_rows_length]
+         += $mat1_values->[$row + $incol * $mat1_rows_length] * $mat2_values->[$incol + $col * $mat2_rows_length];
       }
     }
   }
   
-  return $outputs;
+  my $mat_out = {
+    rows_length => $mat1_rows_length,
+    columns_length => $mat2_columns_length,
+    values => $mat_out_values,
+  };
+  
+  return $mat_out;
 }
 
 # 列優先の行列の作成
