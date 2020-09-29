@@ -101,7 +101,6 @@ for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
           $weights_in_layers->[$layer_index][$weight_index] -= ($learning_rate / $mini_batch_size) * $weight_grads->[$layer_index][$weight_index];
         }
       }
-      1;
     }
   }
 }
@@ -195,6 +194,11 @@ sub backprop {
   
   # 最後の活性化された出力
   my $last_activate_outputs = pop @$inputs_in_layers;
+
+  # 誤差
+  my $cost = cross_entropy_cost($last_activate_outputs, $desired_outputs);
+  
+  print "Cost: $cost, Activate Output: @$last_activate_outputs\n";
   
   # 活性化された出力の微小変化 / 最後の出力の微小変化 
   my $grads_last_outputs_to_activate_func = [];
@@ -290,12 +294,13 @@ sub sigmoid_derivative {
 sub cross_entropy_cost {
   my ($vec_a, $vec_y) = @_;
   
-  my $fn = 0;
+  my $cross_entropy_cost = 0;
   for (my $i = 0; $i < @$vec_a; $i++) {
-    $fn += -$vec_y * log($vec_a->[$i]) - (1 - $vec_y->[$i]) * log(1 - $vec_a->[$i]);
+    my $tmp = -$vec_y->[$i] * log($vec_a->[$i]) - (1 - $vec_y->[$i]) * log(1 - $vec_a->[$i]);
+    $cross_entropy_cost += $tmp;
   }
-  
-  return $fn;
+
+  return $cross_entropy_cost;
 }
 
 # クロスエントロピーコストの導関数
