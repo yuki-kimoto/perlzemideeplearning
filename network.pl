@@ -90,7 +90,7 @@ for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
   my $backprop_count = 0;
 
   # ミニバッチにおける各変換関数のバイアスの傾きの合計とミニバッチにおける各変換関数の重みの傾きの合計を0で初期化
-  for (my $m_to_n_func_index = 0; $m_to_n_func_index < @$m_to_n_func_infos; $m_to_n_func_index++) {
+  for (my $m_to_n_func_index = 0; $m_to_n_func_index < @$m_to_n_func_mini_batch_infos; $m_to_n_func_index++) {
     my $m_to_n_func_info = $m_to_n_func_infos->[$m_to_n_func_index];
     my $biases = $m_to_n_func_info->{biases};
     my $weights_mat = $m_to_n_func_info->{weights_mat};
@@ -113,6 +113,17 @@ for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
       
       # 重みの損失関数に関する傾き
       my $weight_grads_mat = $grad->{weights_mat};
+
+      # ミニバッチにおける各変換関数のバイアスの傾きの合計とミニバッチにおける各変換関数の重みの傾きを加算
+      for (my $m_to_n_func_index = 0; $m_to_n_func_index < @$m_to_n_func_mini_batch_infos; $m_to_n_func_index++) {
+        my $m_to_n_func_info = $m_to_n_func_infos->[$m_to_n_func_index];
+        
+        # ミニバッチにおける各変換関数のバイアスの傾きの合計を0で初期化して作成
+        array_add_inplace($m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{biase_grad_totals}, $biase_grads->[$m_to_n_func_index]);
+
+        # ミニバッチにおける各変換関数の重みの傾きの合計を0で初期化して作成
+        array_add_inplace($m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{weight_grad_totals_mat}{values}, $weight_grads_mat->[$m_to_n_func_index]{values});
+      }
       
       # 各変換関数のバイアスと重みを更新
       for (my $m_to_n_func_index = 0; $m_to_n_func_index < @$m_to_n_func_infos; $m_to_n_func_index++) {
@@ -138,12 +149,14 @@ sub update_params {
 sub backprop {
   my ($m_to_n_func_infos, $mnist_train_image_info, $mnist_train_label_info, $training_data_index) = @_;
   
+  my $first_inputs_length = $m_to_n_func_infos->[0]{inputs_length};
+  
   # 入力
   my $image_unit_length = $mnist_train_image_info->{rows_count} *  $mnist_train_image_info->{columns_count};
   my $mnist_train_image_data = $mnist_train_image_info->{data};
   my $first_inputs_packed = substr($mnist_train_image_data, $image_unit_length * $training_data_index, $image_unit_length);
-  my $first_inputs = [unpack("C$image_unit_length", $first_inputs_packed)];
-  
+  my $first_inputs = [unpack("C$first_inputs_length", $first_inputs_packed)];
+
   # 期待される出力を確率分布化する
   my $label_number = $mnist_train_label_info->{label_numbers}[$training_data_index];
   my $desired_outputs = probabilize_desired_outputs($label_number);
@@ -219,7 +232,7 @@ sub backprop {
   
   # 最後の活性化された出力
   my $last_activate_outputs = pop @$inputs_in_layers;
-
+  
   # 誤差
   my $cost = cross_entropy_cost($last_activate_outputs, $desired_outputs);
   
@@ -335,6 +348,19 @@ sub array_add {
   }
   
   return $nums_out;
+}
+
+# 配列の各要素の和を最初の引数に足す
+sub array_add_inplace {
+  my ($nums1, $nums2) = @_;
+  
+  if (@$nums1 != @$nums2) {
+    die "Array length is diffent";
+  }
+  
+  for (my $i = 0; $i < @$nums1; $i++) {
+    $nums1->[$i] += $nums2->[$i];
+  }
 }
 
 # 配列の各要素の積
