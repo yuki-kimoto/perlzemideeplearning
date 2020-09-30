@@ -95,15 +95,10 @@ for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
     my $biases = $m_to_n_func_info->{biases};
     my $weights_mat = $m_to_n_func_info->{weights_mat};
     
-    # バイアスの長さ
-    my $biases_length = @$biases;
-    
     # ミニバッチにおける各変換関数のバイアスの傾きの合計を0で初期化して作成
-    my $biase_grad_totals = array_new_zero($biases_length);
     array_init_zero($m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{biase_grad_totals});
 
     # ミニバッチにおける各変換関数の重みの傾きの合計を0で初期化して作成
-    my $weight_grad_totals_mat = mat_new_zero($weights_mat->{rows_length}, $weights_mat->{columns_length});
     array_init_zero($m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{weight_grad_totals_mat}{values});
   }
 
