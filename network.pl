@@ -41,7 +41,6 @@ for (my $layer_index = 0; $layer_index < @$neurons_count_in_layers - 1; $layer_i
   my $weights_mat = mat_new_zero($output_neurons_count, $input_neurons_count);
   my $weights_length = $weights_mat->{rows_length} * $weights_mat->{columns_length};
   $weights_mat->{values} = array_create_xivier_init_value($input_neurons_count, $weights_length);
-  
   $weights_mat_in_layers->[$layer_index] = $weights_mat;
 }
 
@@ -85,21 +84,21 @@ for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
       
       # 各層のバイアスと重みを更新
       for (my $layer_index = 0; $layer_index < @$neurons_count_in_layers - 1; $layer_index++) {
-        my $input_neurons_count = $neurons_count_in_layers->[$layer_index];
-        my $output_neurons_count = $neurons_count_in_layers->[$layer_index + 1];
-        
         # 各層のバイアスを更新(学習率を考慮し、ミニバッチ数で割る)
-        for (my $biase_index = 0; $biase_index < $output_neurons_count; $biase_index++) {
-          $biases_in_layers->[$layer_index][$biase_index] -= ($learning_rate / $mini_batch_size) * $biase_grads->[$layer_index][$biase_index];
-        }
-
+        update_params($biases_in_layers->[$layer_index], $biase_grads->[$layer_index], $learning_rate, $mini_batch_size);
+        
         # 各層の重みを更新(学習率を考慮し、傾きの合計をミニバッチ数で、ミニバッチ数で割る)
-        my $weights_length = $input_neurons_count * $output_neurons_count;
-        for (my $weight_index = 0; $weight_index < $weights_length; $weight_index++) {
-          $weights_mat_in_layers->[$layer_index]{values}[$weight_index] -= ($learning_rate / $mini_batch_size) * $weight_grads->[$layer_index][$weight_index];
-        }
+        update_params($weights_mat_in_layers->[$layer_index]{values}, $weight_grads->[$layer_index], $learning_rate, $mini_batch_size);
       }
     }
+  }
+}
+
+sub update_params {
+  my ($params, $param_grads, $learning_rate, $mini_batch_size) = @_;
+  
+  for (my $param_index = 0; $param_index < @$params; $param_index++) {
+    $params->[$param_index] -= ($learning_rate / $mini_batch_size) * $param_grads->[$param_index];
   }
 }
 
