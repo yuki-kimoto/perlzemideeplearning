@@ -83,18 +83,17 @@ for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
       # 重みの損失関数に関する傾き
       my $weight_grads = $grads->{weight};
       
-      # 各層のバイアスを更新(学習率を考慮し、ミニバッチ数で割る)
-      for (my $layer_index = 0; $layer_index < @$neurons_count_in_layers - 1; $layer_index++) {
-        my $output_neurons_count = $neurons_count_in_layers->[$layer_index + 1];
-        for (my $biase_index = 0; $biase_index < $output_neurons_count; $biase_index++) {
-          $biases_in_layers->[$layer_index][$biase_index] -= ($learning_rate / $mini_batch_size) * $biase_grads->[$layer_index][$biase_index];
-        }
-      }
-      
-      # 各層の重みを更新(学習率を考慮し、傾きの合計をミニバッチ数で、ミニバッチ数で割る)
+      # 各層のバイアスと重みを更新
       for (my $layer_index = 0; $layer_index < @$neurons_count_in_layers - 1; $layer_index++) {
         my $input_neurons_count = $neurons_count_in_layers->[$layer_index];
         my $output_neurons_count = $neurons_count_in_layers->[$layer_index + 1];
+        
+        # 各層のバイアスを更新(学習率を考慮し、ミニバッチ数で割る)
+        for (my $biase_index = 0; $biase_index < $output_neurons_count; $biase_index++) {
+          $biases_in_layers->[$layer_index][$biase_index] -= ($learning_rate / $mini_batch_size) * $biase_grads->[$layer_index][$biase_index];
+        }
+
+        # 各層の重みを更新(学習率を考慮し、傾きの合計をミニバッチ数で、ミニバッチ数で割る)
         my $weights_length = $input_neurons_count * $output_neurons_count;
         for (my $weight_index = 0; $weight_index < $weights_length; $weight_index++) {
           $weights_mat_in_layers->[$layer_index]{values}[$weight_index] -= ($learning_rate / $mini_batch_size) * $weight_grads->[$layer_index][$weight_index];
