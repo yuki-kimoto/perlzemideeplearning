@@ -36,7 +36,7 @@ for (my $i = 0; $i < @$neurons_count_in_layers - 1; $i++) {
   my $weights_length = $weights_mat->{rows_length} * $weights_mat->{columns_length};
   $weights_mat->{values} = array_xivier_init_value($inputs_length, $weights_length);
 
-  # 入力数と出力数を設定
+  # 変換関数の情報を設定
   $m_to_n_func_infos->[$i] = {
     inputs_length => $inputs_length,
     outputs_length => $outputs_length,
@@ -56,6 +56,28 @@ my $mnist_train_label_info = load_mnist_train_label_file($mnist_train_label_file
 # 訓練データのインデックス(最初の4万枚だけを訓練用データとして利用する。残りの1万枚は検証用データとする)
 my @training_data_indexes = (0 .. 40000);
 
+# ミニバッチ単位における各変換関数の情報
+my $m_to_n_func_mini_batch_infos = [];
+
+# ミニバッチにおける各変換関数のバイアスの傾きの合計とミニバッチにおける各変換関数の重みの傾きの合計を0で初期化して作成
+# メモリ領域を繰り返しつかうためここで初期化
+for (my $m_to_n_func_index = 0; $m_to_n_func_index < @$m_to_n_func_infos; $m_to_n_func_index++) {
+  my $m_to_n_func_info = $m_to_n_func_infos->[$m_to_n_func_index];
+  my $biases = $m_to_n_func_info->{biases};
+  my $weights_mat = $m_to_n_func_info->{weights_mat};
+  
+  # バイアスの長さ
+  my $biases_length = @$biases;
+  
+  # ミニバッチにおける各変換関数のバイアスの傾きの合計を0で初期化して作成
+  my $biase_grad_totals = array_new_zero($biases_length);
+  $m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{biase_grad_totals} = $biase_grad_totals;
+
+  # ミニバッチにおける各変換関数の重みの傾きの合計を0で初期化して作成
+  my $weight_grad_totals_mat = mat_new_zero($weights_mat->{rows_length}, $weights_mat->{columns_length});
+  $m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{weight_grad_totals_mat} = $weight_grad_totals_mat;
+}
+
 # エポックの回数だけ訓練セットを実行
 for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
   
@@ -66,12 +88,8 @@ for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
   
   # ミニバッチサイズ単位で学習
   my $backprop_count = 0;
-  while (my @indexed_for_mini_batch = splice(@training_data_indexes_shuffle, 0, $mini_batch_size)) {
-    # ミニバッチにおけるバイアスの傾きの合計
-    my $biase_grads_mini_batch_total = [];
 
-    # ミニバッチにおける重みの傾きの合計
-    my $weight_grads_mat_mini_batch_total = [];
+  while (my @indexed_for_mini_batch = splice(@training_data_indexes_shuffle, 0, $mini_batch_size)) {
     
     for my $training_data_index (@indexed_for_mini_batch) {
       # バックプロパゲーションを使って重みとバイアスの損失関数に関する傾きを取得
@@ -497,13 +515,22 @@ sub load_mnist_train_label_file {
   return $label_info;
 }
 
-# 配列を0で初期化
+# 配列を0で初期化して作成
 sub array_new_zero {
   my ($length) = @_;
   
   my $nums = [(0) x $length];
   
   return $nums;
+}
+
+# 既存配列を0で初期化
+sub array_init_zero {
+  my ($nums) = @_;
+  
+  for (my $i = 0; $i < @$nums; $i++) {
+    $nums->[$i] = 0;
+  }
 }
 
 # 行列を0で初期化
