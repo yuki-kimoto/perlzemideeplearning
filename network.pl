@@ -163,10 +163,10 @@ sub backprop {
   my $desired_outputs = probabilize_desired_outputs($label_number);
   
   # 各変換関数のバイアスの傾き
-  my $biase_grads_in_layers = [];
+  my $biase_grads_in_m_to_n_funcs = [];
   
   # 各変換関数の重みの傾き
-  my $weight_grads_mat_in_layers = [];
+  my $weight_grads_mat_in_m_to_n_funcs = [];
   
   # バイアスの傾きと重みの傾きの初期化
   for (my $m_to_n_func_index = 0; $m_to_n_func_index < @$m_to_n_func_infos; $m_to_n_func_index++) {
@@ -174,22 +174,22 @@ sub backprop {
     my $outputs_length = $m_to_n_func_infos->[$m_to_n_func_index]{outputs_length};
 
     # バイアスの傾きを0で初期化
-    $biase_grads_in_layers->[$m_to_n_func_index] = array_new_zero($outputs_length);
+    $biase_grads_in_m_to_n_funcs->[$m_to_n_func_index] = array_new_zero($outputs_length);
 
     # 重みの傾きを0で初期化
-    $weight_grads_mat_in_layers->[$m_to_n_func_index] = mat_new_zero($outputs_length, $inputs_length);
+    $weight_grads_mat_in_m_to_n_funcs->[$m_to_n_func_index] = mat_new_zero($outputs_length, $inputs_length);
   }
 
   # 各層の入力
-  my $inputs_in_layers = [$first_inputs];
+  my $inputs_in_m_to_n_funcs = [$first_inputs];
   
   # 各層の活性化された出力
-  my $outputs_in_layers = [];
+  my $outputs_in_m_to_n_funcs = [];
   
   # 入力層の入力から出力層の出力を求める
   # バックプロパゲーションのために各層の出力と活性化された出力を保存
   for (my $m_to_n_func_index = 0; $m_to_n_func_index < @$m_to_n_func_infos; $m_to_n_func_index++) {
-    my $cur_inputs = $inputs_in_layers->[-1];
+    my $cur_inputs = $inputs_in_m_to_n_funcs->[-1];
     my $inputs_length = $m_to_n_func_infos->[$m_to_n_func_index]{inputs_length};
     my $outputs_length = $m_to_n_func_infos->[$m_to_n_func_index]{outputs_length};
     
@@ -219,20 +219,20 @@ sub backprop {
     my $activate_outputs = array_sigmoid($outputs);
     
     # バックプロパゲーションのために出力を保存
-    push @$outputs_in_layers, $outputs;
+    push @$outputs_in_m_to_n_funcs, $outputs;
     
     # 現在の入力を更新
     $cur_inputs = $activate_outputs;
     
     # バックプロパゲーションのために次の入力を保存
-    push @$inputs_in_layers, $activate_outputs;
+    push @$inputs_in_m_to_n_funcs, $activate_outputs;
   }
   
   # 最後の出力
-  my $last_outputs = $outputs_in_layers->[-1];
+  my $last_outputs = $outputs_in_m_to_n_funcs->[-1];
   
   # 最後の活性化された出力
-  my $last_activate_outputs = pop @$inputs_in_layers;
+  my $last_activate_outputs = pop @$inputs_in_m_to_n_funcs;
   
   # 誤差
   my $cost = cross_entropy_cost($last_activate_outputs, $desired_outputs);
@@ -246,17 +246,14 @@ sub backprop {
   my $grad_last_activate_outputs_to_cost_func = cross_entropy_cost_derivative($last_activate_outputs, $desired_outputs);
   
   # 損失関数の微小変化 / 最後の出力の微小変化 (合成微分)
-  my $grad_last_outputs_to_cost_func = [];
-  for (my $i = 0; $i < @$grad_last_outputs_to_activate_func; $i++) {
-    $grad_last_outputs_to_cost_func->[$i] = $grad_last_outputs_to_activate_func->[$i] * $grad_last_activate_outputs_to_cost_func->[$i];
-  }
+  my $grad_last_outputs_to_cost_func = array_mul($grad_last_outputs_to_activate_func, $grad_last_activate_outputs_to_cost_func);
   
   # 損失関数の微小変化 / 最終の層のバイアスの微小変化
   my $last_biase_grads = $grad_last_outputs_to_cost_func;
   
   # 損失関数の微小変化 / 最終の層の重みの微小変化
   my $last_weight_grads_mat_values = [];
-  my $last_inputs = $inputs_in_layers->[-1];
+  my $last_inputs = $inputs_in_m_to_n_funcs->[-1];
   for (my $last_inputs_index = 0; $last_inputs_index < @$last_inputs; $last_inputs_index++) {
     for (my $last_biase_grads_index = 0; $last_biase_grads_index < @$last_biase_grads; $last_biase_grads_index++) {
       $last_weight_grads_mat_values->[$last_biase_grads_index + @$last_biase_grads * $last_inputs_index]
@@ -270,19 +267,19 @@ sub backprop {
     values => $last_weight_grads_mat_values
   };
   
-  $biase_grads_in_layers->[@$biase_grads_in_layers - 1] = $last_biase_grads;
-  $weight_grads_mat_in_layers->[@$biase_grads_in_layers - 1] = $last_weight_grads_mat;
+  $biase_grads_in_m_to_n_funcs->[@$biase_grads_in_m_to_n_funcs - 1] = $last_biase_grads;
+  $weight_grads_mat_in_m_to_n_funcs->[@$biase_grads_in_m_to_n_funcs - 1] = $last_weight_grads_mat;
   
   # 最後の重みとバイアスの変換より一つ前から始める
   for (my $m_to_n_func_index = @$m_to_n_func_infos - 2; $m_to_n_func_index >= 0; $m_to_n_func_index--) {
     # 活性化された出力の微小変化 / 出力の微小変化
-    my $outputs = $outputs_in_layers->[$m_to_n_func_index];
+    my $outputs = $outputs_in_m_to_n_funcs->[$m_to_n_func_index];
 
     # 損失関数の微小変化 / この層のバイアスの微小変化(バックプロパゲーションで求める)
     # 次の層の重みの傾きの転置行列とバイアスの傾きの転置行列をかけて、それぞれの要素に、活性化関数の導関数をかける
     my $biase_grads = [];
-    my $forword_biase_grads = $biase_grads_in_layers->[$m_to_n_func_index + 1];
-    my $forword_weight_grads_mat = $weight_grads_mat_in_layers->[$m_to_n_func_index + 1];
+    my $forword_biase_grads = $biase_grads_in_m_to_n_funcs->[$m_to_n_func_index + 1];
+    my $forword_weight_grads_mat = $weight_grads_mat_in_m_to_n_funcs->[$m_to_n_func_index + 1];
     my $forword_weight_grads_mat_values = $forword_weight_grads_mat->{values};
     my $forword_weight_columns_length = $forword_weight_grads_mat->{columns_length};
     for (my $biase_index = 0; $biase_index < @$forword_biase_grads; $biase_index++) {
@@ -295,7 +292,7 @@ sub backprop {
     
     # 損失関数の微小変化 / この層の重みの微小変化(バックプロパゲーションで求める)
     my $weights_grads_values = [];
-    my $inputs = $inputs_in_layers->[$m_to_n_func_index];
+    my $inputs = $inputs_in_m_to_n_funcs->[$m_to_n_func_index];
     for (my $inputs_index = 0; $inputs_index < @$inputs; $inputs_index++) {
       for (my $biase_grads_index = 0; $biase_grads_index < @$biase_grads; $biase_grads_index++) {
         $weights_grads_values->[$biase_grads_index + @$biase_grads * $inputs_index]
@@ -308,12 +305,12 @@ sub backprop {
       columns_length => scalar @$inputs,
       values => $weights_grads_values,
     };
-    $weight_grads_mat_in_layers->[$m_to_n_func_index] = $weights_grads_mat;
+    $weight_grads_mat_in_m_to_n_funcs->[$m_to_n_func_index] = $weights_grads_mat;
   }
 
   my $m_to_n_func_grad_infos = {};
-  $m_to_n_func_grad_infos->{biases} = $biase_grads_in_layers;
-  $m_to_n_func_grad_infos->{weights_mat} = $weight_grads_mat_in_layers;
+  $m_to_n_func_grad_infos->{biases} = $biase_grads_in_m_to_n_funcs;
+  $m_to_n_func_grad_infos->{weights_mat} = $weight_grads_mat_in_m_to_n_funcs;
   
   return $m_to_n_func_grad_infos;
 }
