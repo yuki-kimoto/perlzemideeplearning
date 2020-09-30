@@ -67,10 +67,10 @@ for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
   my $backprop_count = 0;
   while (my @indexed_for_mini_batch = splice(@training_data_indexes_shuffle, 0, $mini_batch_size)) {
     # ミニバッチにおけるバイアスの傾きの合計
-    my $biase_grads_total_in_mini_batch = [];
+    my $biase_grads_mini_batch_total = [];
 
     # ミニバッチにおける重みの傾きの合計
-    my $weight_grads_mat_total_in_mini_batch = [];
+    my $weight_grads_mat_mini_batch_total = [];
     
     for my $training_data_index (@indexed_for_mini_batch) {
       # バックプロパゲーションを使って重みとバイアスの損失関数に関する傾きを取得
