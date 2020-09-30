@@ -106,13 +106,13 @@ for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
     
     for my $training_data_index (@indexed_for_mini_batch) {
       # バックプロパゲーションを使って重みとバイアスの損失関数に関する傾きを取得
-      my $grad = backprop($m_to_n_func_infos, $mnist_train_image_info, $mnist_train_label_info, $training_data_index);
+      my $m_to_n_func_grad_infos = backprop($m_to_n_func_infos, $mnist_train_image_info, $mnist_train_label_info, $training_data_index);
       
       # バイアスの損失関数に関する傾き
-      my $biase_grads = $grad->{biases};
+      my $biase_grads = $m_to_n_func_grad_infos->{biases};
       
       # 重みの損失関数に関する傾き
-      my $weight_grads_mat = $grad->{weights_mat};
+      my $weight_grads_mat = $m_to_n_func_grad_infos->{weights_mat};
 
       # ミニバッチにおける各変換関数のバイアスの傾きの合計とミニバッチにおける各変換関数の重みの傾きを加算
       for (my $m_to_n_func_index = 0; $m_to_n_func_index < @$m_to_n_func_mini_batch_infos; $m_to_n_func_index++) {
@@ -311,11 +311,11 @@ sub backprop {
     $weight_grads_mat_in_layers->[$m_to_n_func_index] = $weights_grads_mat;
   }
 
-  my $grad = {};
-  $grad->{biases} = $biase_grads_in_layers;
-  $grad->{weights_mat} = $weight_grads_mat_in_layers;
+  my $m_to_n_func_grad_infos = {};
+  $m_to_n_func_grad_infos->{biases} = $biase_grads_in_layers;
+  $m_to_n_func_grad_infos->{weights_mat} = $weight_grads_mat_in_layers;
   
-  return $grad;
+  return $m_to_n_func_grad_infos;
 }
 
 # 期待される出力を確率分布化する
