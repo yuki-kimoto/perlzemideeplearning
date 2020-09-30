@@ -15,10 +15,24 @@ my $epoch_count = 400;
 my $mini_batch_size = 10;
 
 # 各層のニューロンの数
-# 28 * 28 = 728のモノクロ画像を (入力層)
-# 30個の中間出力を通って        (隠れ層)
-# 0～9の10個に分類する          (出力層)
+# 28 * 28 = 728のモノクロ画像を (入力)
+# 30個の中間出力を通って        (中間出力)
+# 0～9の10個に分類する          (出力)
 my $neurons_count_in_layers = [728, 30, 10];
+
+# 各層のm個の入力をn個の出力に変換する関数のバイアスと重みの情報。
+my $m_to_n_func_infos = [];
+
+# 各層のニューロン数からmからnへの変換関数の情報を作成
+for (my $i = 0; $i < @$neurons_count_in_layers - 1; $i++) {
+  my $inputs_length = $neurons_count_in_layers->[$i];
+  my $outputs_length = $neurons_count_in_layers->[$i + 1];
+
+  $m_to_n_func_infos->[$i] = {
+    inputs_count => $inputs_length,
+    outputs_count => $outputs_length,
+  }
+}
 
 # 各層のバイアス
 my $biases_in_layers = [];
@@ -28,19 +42,19 @@ my $weights_mat_in_layers = [];
 
 # 各層のバイアスと重みの初期化
 for (my $layer_index = 0; $layer_index < @$neurons_count_in_layers - 1; $layer_index++) {
-  my $input_neurons_count = $neurons_count_in_layers->[$layer_index];
-  my $output_neurons_count = $neurons_count_in_layers->[$layer_index + 1];
+  my $inputs_length = $neurons_count_in_layers->[$layer_index];
+  my $outputs_length = $neurons_count_in_layers->[$layer_index + 1];
   
   # バイアスの初期化 - バイアスは各層の入力から出力への変換に利用されるので、バイアスの組の数は、入力層、隠れ層、出力層の合計より1小さいことに注意。
   # 0で初期化
-  $biases_in_layers->[$layer_index] = array_new_zero($output_neurons_count);
+  $biases_in_layers->[$layer_index] = array_new_zero($outputs_length);
   
   # 重みの初期化 - 重みは各層の入力から出力への変換に利用されるので、重みの組の数は、入力層、隠れ層、出力層の合計より1小さいことに注意。
   # 重みは列優先の行列と考える
   # Xivierの初期値で初期化
-  my $weights_mat = mat_new_zero($output_neurons_count, $input_neurons_count);
+  my $weights_mat = mat_new_zero($outputs_length, $inputs_length);
   my $weights_length = $weights_mat->{rows_length} * $weights_mat->{columns_length};
-  $weights_mat->{values} = array_xivier_init_value($input_neurons_count, $weights_length);
+  $weights_mat->{values} = array_xivier_init_value($inputs_length, $weights_length);
   $weights_mat_in_layers->[$layer_index] = $weights_mat;
 }
 
@@ -124,14 +138,14 @@ sub backprop {
   
   # バイアスの傾きと重みの傾きの初期化
   for (my $layer_index = 0; $layer_index < @$neurons_count_in_layers - 1; $layer_index++) {
-    my $input_neurons_count = $neurons_count_in_layers->[$layer_index];
-    my $output_neurons_count = $neurons_count_in_layers->[$layer_index + 1];
+    my $inputs_length = $neurons_count_in_layers->[$layer_index];
+    my $outputs_length = $neurons_count_in_layers->[$layer_index + 1];
 
     # バイアスの傾きを0で初期化
-    $biase_grads_in_layers->[$layer_index] = array_new_zero($output_neurons_count);
+    $biase_grads_in_layers->[$layer_index] = array_new_zero($outputs_length);
 
     # 重みの傾きを0で初期化
-    $weight_grads_mat_in_layers->[$layer_index] = mat_new_zero($output_neurons_count, $input_neurons_count);
+    $weight_grads_mat_in_layers->[$layer_index] = mat_new_zero($outputs_length, $inputs_length);
   }
 
   # 各層の入力
@@ -144,14 +158,14 @@ sub backprop {
   # バックプロパゲーションのために各層の出力と活性化された出力を保存
   for (my $layer_index = 0; $layer_index < @$neurons_count_in_layers - 1; $layer_index++) {
     my $cur_inputs = $inputs_in_layers->[-1];
-    my $input_neurons_count = $neurons_count_in_layers->[$layer_index];
-    my $output_neurons_count = $neurons_count_in_layers->[$layer_index + 1];
+    my $inputs_length = $neurons_count_in_layers->[$layer_index];
+    my $outputs_length = $neurons_count_in_layers->[$layer_index + 1];
     
     # 重み行列
     my $weights_mat = $weights_mat_in_layers->[$layer_index];
     
     # 入力行列
-    my $cur_inputs_rows_length = $output_neurons_count;
+    my $cur_inputs_rows_length = $outputs_length;
     my $cur_inputs_columns_length = 1;
     my $cur_inputs_mat = {
       rows_length => $cur_inputs_rows_length,
@@ -323,18 +337,18 @@ sub array_mul {
 
 # Xivierの初期値を取得
 sub xivier_init_value {
-  my ($input_neurons_count) = @_;
+  my ($inputs_length) = @_;
   
-  return randn(0, 1 / sqrt($input_neurons_count));
+  return randn(0, 1 / sqrt($inputs_length));
 }
 
 # 配列の各要素にXivierの初期値を取得を適用する
 sub array_xivier_init_value {
-  my ($input_neurons_count, $length) = @_;
+  my ($inputs_length, $length) = @_;
   
   my $nums_out = [];
   for (my $i = 0; $i < $length; $i++) {
-    $nums_out->[$i] = xivier_init_value($input_neurons_count);
+    $nums_out->[$i] = xivier_init_value($inputs_length);
   }
   
   return $nums_out;
