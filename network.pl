@@ -40,7 +40,7 @@ for (my $layer_index = 0; $layer_index < @$neurons_count_in_layers - 1; $layer_i
   # Xivierの初期値で初期化
   my $weights_mat = mat_new_zero($output_neurons_count, $input_neurons_count);
   my $weights_length = $weights_mat->{rows_length} * $weights_mat->{columns_length};
-  $weights_mat->{values} = array_create_xivier_init_value($input_neurons_count, $weights_length);
+  $weights_mat->{values} = array_xivier_init_value($input_neurons_count, $weights_length);
   $weights_mat_in_layers->[$layer_index] = $weights_mat;
 }
 
@@ -310,19 +310,19 @@ sub array_mul {
 }
 
 # Xivierの初期値を取得
-sub create_xivier_init_value {
+sub xivier_init_value {
   my ($input_neurons_count) = @_;
   
   return randn(0, 1 / sqrt($input_neurons_count));
 }
 
 # 配列の各要素にXivierの初期値を取得を適用する
-sub array_create_xivier_init_value {
+sub array_xivier_init_value {
   my ($input_neurons_count, $length) = @_;
   
   my $nums_out = [];
   for (my $i = 0; $i < $length; $i++) {
-    $nums_out->[$i] = create_xivier_init_value($input_neurons_count);
+    $nums_out->[$i] = xivier_init_value($input_neurons_count);
   }
   
   return $nums_out;
