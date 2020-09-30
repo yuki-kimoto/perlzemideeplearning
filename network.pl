@@ -89,7 +89,7 @@ for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
     
     for my $training_data_index (@indexed_for_mini_batch) {
       # バックプロパゲーションを使って重みとバイアスの損失関数に関する傾きを取得
-      my $grad = backprop($neurons_count_in_layers, $mnist_train_image_info, $mnist_train_label_info, $training_data_index);
+      my $grad = backprop($m_to_n_func_infos, $mnist_train_image_info, $mnist_train_label_info, $training_data_index);
       
       # バイアスの損失関数に関する傾き
       my $biase_grads = $grad->{biases};
@@ -119,7 +119,7 @@ sub update_params {
 
 # バックプロパゲーション
 sub backprop {
-  my ($neurons_count_in_layers, $mnist_train_image_info, $mnist_train_label_info, $training_data_index) = @_;
+  my ($m_to_n_func_infos, $mnist_train_image_info, $mnist_train_label_info, $training_data_index) = @_;
   
   # 入力
   my $image_unit_length = $mnist_train_image_info->{rows_count} *  $mnist_train_image_info->{columns_count};
@@ -139,8 +139,8 @@ sub backprop {
   
   # バイアスの傾きと重みの傾きの初期化
   for (my $m_to_n_func_index = 0; $m_to_n_func_index < @$m_to_n_func_infos; $m_to_n_func_index++) {
-    my $inputs_length = $neurons_count_in_layers->[$m_to_n_func_index];
-    my $outputs_length = $neurons_count_in_layers->[$m_to_n_func_index + 1];
+    my $inputs_length = $m_to_n_func_infos->[$m_to_n_func_index]{inputs_length};
+    my $outputs_length = $m_to_n_func_infos->[$m_to_n_func_index]{outputs_length};
 
     # バイアスの傾きを0で初期化
     $biase_grads_in_layers->[$m_to_n_func_index] = array_new_zero($outputs_length);
@@ -159,8 +159,8 @@ sub backprop {
   # バックプロパゲーションのために各層の出力と活性化された出力を保存
   for (my $m_to_n_func_index = 0; $m_to_n_func_index < @$m_to_n_func_infos; $m_to_n_func_index++) {
     my $cur_inputs = $inputs_in_layers->[-1];
-    my $inputs_length = $neurons_count_in_layers->[$m_to_n_func_index];
-    my $outputs_length = $neurons_count_in_layers->[$m_to_n_func_index + 1];
+    my $inputs_length = $m_to_n_func_infos->[$m_to_n_func_index]{inputs_length};
+    my $outputs_length = $m_to_n_func_infos->[$m_to_n_func_index]{outputs_length};
     
     # 重み行列
     my $weights_mat = $weights_mat_in_layers->[$m_to_n_func_index];
@@ -243,7 +243,7 @@ sub backprop {
   $weight_grads_mat_in_layers->[@$biase_grads_in_layers - 1] = $last_weight_grads_mat;
   
   # 最後の重みとバイアスの変換より一つ前から始める
-  for (my $m_to_n_func_index = @$neurons_count_in_layers - 3; $m_to_n_func_index >= 0; $m_to_n_func_index--) {
+  for (my $m_to_n_func_index = @$m_to_n_func_infos - 2; $m_to_n_func_index >= 0; $m_to_n_func_index--) {
     # 活性化された出力の微小変化 / 出力の微小変化
     my $outputs = $outputs_in_layers->[$m_to_n_func_index];
 
