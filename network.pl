@@ -88,7 +88,7 @@ for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
         update_params($biases_in_layers->[$layer_index], $biase_grads->[$layer_index], $learning_rate, $mini_batch_size);
         
         # 各層の重みを更新(学習率を考慮し、傾きの合計をミニバッチ数で、ミニバッチ数で割る)
-        update_params($weights_mat_in_layers->[$layer_index]{values}, $weight_grads_mat->[$layer_index], $learning_rate, $mini_batch_size);
+        update_params($weights_mat_in_layers->[$layer_index]{values}, $weight_grads_mat->[$layer_index]{values}, $learning_rate, $mini_batch_size);
       }
     }
   }
@@ -131,8 +131,7 @@ sub backprop {
     $biase_grads_in_layers->[$layer_index] = array_new_zero($output_neurons_count);
 
     # 重みの傾きを0で初期化
-    my $weights_length = $input_neurons_count * $output_neurons_count;
-    $weight_grads_mat_in_layers->[$layer_index] = [(0) x $weights_length];
+    $weight_grads_mat_in_layers->[$layer_index] = mat_new_zero($output_neurons_count, $input_neurons_count);
   }
 
   # 各層の入力
@@ -210,14 +209,20 @@ sub backprop {
   my $last_biase_grads = $grad_last_outputs_to_cost_func;
   
   # 損失関数の微小変化 / 最終の層の重みの微小変化
-  my $last_weight_grads_mat = [];
+  my $last_weight_grads_mat_values = [];
   my $last_inputs = $inputs_in_layers->[-1];
   for (my $last_inputs_index = 0; $last_inputs_index < @$last_inputs; $last_inputs_index++) {
     for (my $last_biase_grads_index = 0; $last_biase_grads_index < @$last_biase_grads; $last_biase_grads_index++) {
-      $last_weight_grads_mat->[$last_biase_grads_index + @$last_biase_grads * $last_inputs_index]
+      $last_weight_grads_mat_values->[$last_biase_grads_index + @$last_biase_grads * $last_inputs_index]
         = $last_biase_grads->[$last_biase_grads_index] * $last_inputs->[$last_inputs_index];
     }
   }
+  
+  my $last_weight_grads_mat = {
+    rows_length => scalar @$last_biase_grads,
+    columns_length => scalar @$last_inputs,
+    values => $last_weight_grads_mat_values
+  };
   
   $biase_grads_in_layers->[@$biase_grads_in_layers - 1] = $last_biase_grads;
   $weight_grads_mat_in_layers->[@$biase_grads_in_layers - 1] = $last_weight_grads_mat;
@@ -232,25 +237,32 @@ sub backprop {
     my $biase_grads = [];
     my $forword_biase_grads = $biase_grads_in_layers->[$layer_index + 1];
     my $forword_weight_grads_mat = $weight_grads_mat_in_layers->[$layer_index + 1];
-    my $forword_weight_columns_length = @$forword_weight_grads_mat / @$forword_biase_grads;
+    my $forword_weight_grads_mat_values = $forword_weight_grads_mat->{values};
+    my $forword_weight_columns_length = $forword_weight_grads_mat->{columns_length};
     for (my $biase_index = 0; $biase_index < @$forword_biase_grads; $biase_index++) {
       for (my $weight_columns_index = 0; $weight_columns_index < $forword_weight_columns_length; $weight_columns_index++) {
-        $biase_grads->[$weight_columns_index] += $forword_biase_grads->[$biase_index] * $forword_weight_grads_mat->[$biase_index + @$forword_biase_grads * $weight_columns_index];
+        $biase_grads->[$weight_columns_index] += $forword_biase_grads->[$biase_index] * $forword_weight_grads_mat_values->[$biase_index + @$forword_biase_grads * $weight_columns_index];
       }
     }
     
     $biase_grads = array_sigmoid_derivative($biase_grads);
     
     # 損失関数の微小変化 / この層の重みの微小変化(バックプロパゲーションで求める)
-    my $weights_grads = [];
+    my $weights_grads_values = [];
     my $inputs = $inputs_in_layers->[$layer_index];
     for (my $inputs_index = 0; $inputs_index < @$inputs; $inputs_index++) {
       for (my $biase_grads_index = 0; $biase_grads_index < @$biase_grads; $biase_grads_index++) {
-        $weights_grads->[$biase_grads_index + @$biase_grads * $inputs_index]
+        $weights_grads_values->[$biase_grads_index + @$biase_grads * $inputs_index]
           = $biase_grads->[$biase_grads_index] * $inputs->[$inputs_index];
       }
     }
-    $weight_grads_mat_in_layers->[$layer_index] = $weights_grads;
+    
+    my $weights_grads_mat = {
+      rows_length => scalar @$biase_grads,
+      columns_length => scalar @$inputs,
+      values => $weights_grads_values,
+    };
+    $weight_grads_mat_in_layers->[$layer_index] = $weights_grads_mat;
   }
 
   my $grad = {};
