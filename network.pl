@@ -89,20 +89,20 @@ for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
   # ミニバッチサイズ単位で学習
   my $backprop_count = 0;
 
-  # ミニバッチにおける各変換関数のバイアスの傾きの合計とミニバッチにおける各変換関数の重みの傾きの合計を0で初期化
-  for (my $m_to_n_func_index = 0; $m_to_n_func_index < @$m_to_n_func_mini_batch_infos; $m_to_n_func_index++) {
-    my $m_to_n_func_info = $m_to_n_func_infos->[$m_to_n_func_index];
-    my $biases = $m_to_n_func_info->{biases};
-    my $weights_mat = $m_to_n_func_info->{weights_mat};
-    
-    # ミニバッチにおける各変換関数のバイアスの傾きの合計を0で初期化して作成
-    array_init_zero($m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{biase_grad_totals});
-
-    # ミニバッチにおける各変換関数の重みの傾きの合計を0で初期化して作成
-    array_init_zero($m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{weight_grad_totals_mat}{values});
-  }
-
   while (my @indexed_for_mini_batch = splice(@training_data_indexes_shuffle, 0, $mini_batch_size)) {
+    
+    # ミニバッチにおける各変換関数のバイアスの傾きの合計とミニバッチにおける各変換関数の重みの傾きの合計を0で初期化
+    for (my $m_to_n_func_index = 0; $m_to_n_func_index < @$m_to_n_func_mini_batch_infos; $m_to_n_func_index++) {
+      my $m_to_n_func_info = $m_to_n_func_infos->[$m_to_n_func_index];
+      my $biases = $m_to_n_func_info->{biases};
+      my $weights_mat = $m_to_n_func_info->{weights_mat};
+      
+      # ミニバッチにおける各変換関数のバイアスの傾きの合計を0で初期化して作成
+      array_init_zero($m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{biase_grad_totals});
+
+      # ミニバッチにおける各変換関数の重みの傾きの合計を0で初期化して作成
+      array_init_zero($m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{weight_grad_totals_mat}{values});
+    }
     
     for my $training_data_index (@indexed_for_mini_batch) {
       # バックプロパゲーションを使って重みとバイアスの損失関数に関する傾きを取得
@@ -118,25 +118,26 @@ for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
       for (my $m_to_n_func_index = 0; $m_to_n_func_index < @$m_to_n_func_mini_batch_infos; $m_to_n_func_index++) {
         my $m_to_n_func_info = $m_to_n_func_infos->[$m_to_n_func_index];
         
-        # ミニバッチにおける各変換関数のバイアスの傾きの合計を0で初期化して作成
+        # ミニバッチにおける各変換関数のバイアスの傾きを加算
         array_add_inplace($m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{biase_grad_totals}, $biase_grads->[$m_to_n_func_index]);
 
-        # ミニバッチにおける各変換関数の重みの傾きの合計を0で初期化して作成
+        # ミニバッチにおける各変換関数の重みの傾きを加算
         array_add_inplace($m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{weight_grad_totals_mat}{values}, $weight_grads_mat->[$m_to_n_func_index]{values});
       }
+    }
+
+    # 各変換関数のバイアスと重みをミニバッチの傾きの合計を使って更新
+    for (my $m_to_n_func_index = 0; $m_to_n_func_index < @$m_to_n_func_infos; $m_to_n_func_index++) {
+      # 各変換関数のバイアスを更新(学習率を考慮し、ミニバッチ数で割る)
+      update_params($m_to_n_func_infos->[$m_to_n_func_index]{biases},$m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{biase_grad_totals}, $learning_rate, $mini_batch_size);
       
-      # 各変換関数のバイアスと重みを更新
-      for (my $m_to_n_func_index = 0; $m_to_n_func_index < @$m_to_n_func_infos; $m_to_n_func_index++) {
-        # 各変換関数のバイアスを更新(学習率を考慮し、ミニバッチ数で割る)
-        update_params($m_to_n_func_infos->[$m_to_n_func_index]{biases}, $biase_grads->[$m_to_n_func_index], $learning_rate, $mini_batch_size);
-        
-        # 各変換関数の重みを更新(学習率を考慮し、傾きの合計をミニバッチ数で、ミニバッチ数で割る)
-        update_params($m_to_n_func_infos->[$m_to_n_func_index]{weights_mat}{values}, $weight_grads_mat->[$m_to_n_func_index]{values}, $learning_rate, $mini_batch_size);
-      }
+      # 各変換関数の重みを更新(学習率を考慮し、傾きの合計をミニバッチ数で、ミニバッチ数で割る)
+      update_params($m_to_n_func_infos->[$m_to_n_func_index]{weights_mat}{values}, $m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{weight_grad_totals_mat}{values}, $learning_rate, $mini_batch_size);
     }
   }
 }
 
+# 学習率とミニバッチ数を考慮してパラメーターを更新
 sub update_params {
   my ($params, $param_grads, $learning_rate, $mini_batch_size) = @_;
   
