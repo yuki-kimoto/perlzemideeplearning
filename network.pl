@@ -70,17 +70,17 @@ for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
     my $biase_grads_total_in_mini_batch = [];
 
     # ミニバッチにおける重みの傾きの合計
-    my $weight_grads_total_in_mini_batch = [];
+    my $weight_grads_mat_total_in_mini_batch = [];
     
     for my $training_data_index (@indexed_for_mini_batch) {
       # バックプロパゲーションを使って重みとバイアスの損失関数に関する傾きを取得
-      my $grads = backprop($neurons_count_in_layers, $mnist_train_image_info, $mnist_train_label_info, $training_data_index);
+      my $grad = backprop($neurons_count_in_layers, $mnist_train_image_info, $mnist_train_label_info, $training_data_index);
       
       # バイアスの損失関数に関する傾き
-      my $biase_grads = $grads->{biase};
+      my $biase_grads = $grad->{biases};
       
       # 重みの損失関数に関する傾き
-      my $weight_grads = $grads->{weight};
+      my $weight_grads_mat = $grad->{weights_mat};
       
       # 各層のバイアスと重みを更新
       for (my $layer_index = 0; $layer_index < @$neurons_count_in_layers - 1; $layer_index++) {
@@ -88,7 +88,7 @@ for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
         update_params($biases_in_layers->[$layer_index], $biase_grads->[$layer_index], $learning_rate, $mini_batch_size);
         
         # 各層の重みを更新(学習率を考慮し、傾きの合計をミニバッチ数で、ミニバッチ数で割る)
-        update_params($weights_mat_in_layers->[$layer_index]{values}, $weight_grads->[$layer_index], $learning_rate, $mini_batch_size);
+        update_params($weights_mat_in_layers->[$layer_index]{values}, $weight_grads_mat->[$layer_index], $learning_rate, $mini_batch_size);
       }
     }
   }
@@ -120,7 +120,7 @@ sub backprop {
   my $biase_grads_in_layers = [];
   
   # 各層の重みの傾き
-  my $weight_grads_in_layers = [];
+  my $weight_grads_mat_in_layers = [];
   
   # バイアスの傾きと重みの傾きの初期化
   for (my $layer_index = 0; $layer_index < @$neurons_count_in_layers - 1; $layer_index++) {
@@ -132,7 +132,7 @@ sub backprop {
 
     # 重みの傾きを0で初期化
     my $weights_length = $input_neurons_count * $output_neurons_count;
-    $weight_grads_in_layers->[$layer_index] = [(0) x $weights_length];
+    $weight_grads_mat_in_layers->[$layer_index] = [(0) x $weights_length];
   }
 
   # 各層の入力
@@ -195,32 +195,32 @@ sub backprop {
   print "Cost: $cost\n";
   
   # 活性化された出力の微小変化 / 最後の出力の微小変化 
-  my $grads_last_outputs_to_activate_func = array_sigmoid_derivative($last_outputs);
+  my $grad_last_outputs_to_activate_func = array_sigmoid_derivative($last_outputs);
   
   # 損失関数の微小変化 / 最後に活性化された出力の微小変化
-  my $grads_last_activate_outputs_to_cost_func = cross_entropy_cost_derivative($last_activate_outputs, $desired_outputs);
+  my $grad_last_activate_outputs_to_cost_func = cross_entropy_cost_derivative($last_activate_outputs, $desired_outputs);
   
   # 損失関数の微小変化 / 最後の出力の微小変化 (合成微分)
-  my $grads_last_outputs_to_cost_func = [];
-  for (my $i = 0; $i < @$grads_last_outputs_to_activate_func; $i++) {
-    $grads_last_outputs_to_cost_func->[$i] = $grads_last_outputs_to_activate_func->[$i] * $grads_last_activate_outputs_to_cost_func->[$i];
+  my $grad_last_outputs_to_cost_func = [];
+  for (my $i = 0; $i < @$grad_last_outputs_to_activate_func; $i++) {
+    $grad_last_outputs_to_cost_func->[$i] = $grad_last_outputs_to_activate_func->[$i] * $grad_last_activate_outputs_to_cost_func->[$i];
   }
   
   # 損失関数の微小変化 / 最終の層のバイアスの微小変化
-  my $last_biase_grads = $grads_last_outputs_to_cost_func;
+  my $last_biase_grads = $grad_last_outputs_to_cost_func;
   
   # 損失関数の微小変化 / 最終の層の重みの微小変化
-  my $last_weight_grads = [];
+  my $last_weight_grads_mat = [];
   my $last_inputs = $inputs_in_layers->[-1];
   for (my $last_inputs_index = 0; $last_inputs_index < @$last_inputs; $last_inputs_index++) {
     for (my $last_biase_grads_index = 0; $last_biase_grads_index < @$last_biase_grads; $last_biase_grads_index++) {
-      $last_weight_grads->[$last_biase_grads_index + @$last_biase_grads * $last_inputs_index]
+      $last_weight_grads_mat->[$last_biase_grads_index + @$last_biase_grads * $last_inputs_index]
         = $last_biase_grads->[$last_biase_grads_index] * $last_inputs->[$last_inputs_index];
     }
   }
   
   $biase_grads_in_layers->[@$biase_grads_in_layers - 1] = $last_biase_grads;
-  $weight_grads_in_layers->[@$biase_grads_in_layers - 1] = $last_weight_grads;
+  $weight_grads_mat_in_layers->[@$biase_grads_in_layers - 1] = $last_weight_grads_mat;
   
   # 最後の重みとバイアスの変換より一つ前から始める
   for (my $layer_index = @$neurons_count_in_layers - 3; $layer_index >= 0; $layer_index--) {
@@ -231,11 +231,11 @@ sub backprop {
     # 次の層の重みの傾きの転置行列とバイアスの傾きの転置行列をかけて、それぞれの要素に、活性化関数の導関数をかける
     my $biase_grads = [];
     my $forword_biase_grads = $biase_grads_in_layers->[$layer_index + 1];
-    my $forword_weight_grads = $weight_grads_in_layers->[$layer_index + 1];
-    my $forword_weight_columns_length = @$forword_weight_grads / @$forword_biase_grads;
+    my $forword_weight_grads_mat = $weight_grads_mat_in_layers->[$layer_index + 1];
+    my $forword_weight_columns_length = @$forword_weight_grads_mat / @$forword_biase_grads;
     for (my $biase_index = 0; $biase_index < @$forword_biase_grads; $biase_index++) {
       for (my $weight_columns_index = 0; $weight_columns_index < $forword_weight_columns_length; $weight_columns_index++) {
-        $biase_grads->[$weight_columns_index] += $forword_biase_grads->[$biase_index] * $forword_weight_grads->[$biase_index + @$forword_biase_grads * $weight_columns_index];
+        $biase_grads->[$weight_columns_index] += $forword_biase_grads->[$biase_index] * $forword_weight_grads_mat->[$biase_index + @$forword_biase_grads * $weight_columns_index];
       }
     }
     
@@ -250,14 +250,14 @@ sub backprop {
           = $biase_grads->[$biase_grads_index] * $inputs->[$inputs_index];
       }
     }
-    $weight_grads_in_layers->[$layer_index] = $weights_grads;
+    $weight_grads_mat_in_layers->[$layer_index] = $weights_grads;
   }
 
-  my $grads = {};
-  $grads->{biase} = $biase_grads_in_layers;
-  $grads->{weight} = $weight_grads_in_layers;
+  my $grad = {};
+  $grad->{biases} = $biase_grads_in_layers;
+  $grad->{weights_mat} = $weight_grads_mat_in_layers;
   
-  return $grads;
+  return $grad;
 }
 
 # 期待される出力を確率分布化する
