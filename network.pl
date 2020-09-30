@@ -252,21 +252,11 @@ sub backprop {
   my $last_biase_grads = $grad_last_outputs_to_cost_func;
   
   # 損失関数の微小変化 / 最終の層の重みの微小変化
-  my $last_weight_grads_mat_values = [];
+  my $last_biase_grads_mat = mat_new($last_biase_grads, scalar @$last_biase_grads, 1);
   my $last_inputs = $inputs_in_m_to_n_funcs->[-1];
-  for (my $last_inputs_index = 0; $last_inputs_index < @$last_inputs; $last_inputs_index++) {
-    for (my $last_biase_grads_index = 0; $last_biase_grads_index < @$last_biase_grads; $last_biase_grads_index++) {
-      $last_weight_grads_mat_values->[$last_biase_grads_index + @$last_biase_grads * $last_inputs_index]
-        = $last_biase_grads->[$last_biase_grads_index] * $last_inputs->[$last_inputs_index];
-    }
-  }
-  
-  my $last_weight_grads_mat = {
-    rows_length => scalar @$last_biase_grads,
-    columns_length => scalar @$last_inputs,
-    values => $last_weight_grads_mat_values
-  };
-  
+  my $last_inputs_transpose_mat = mat_new($last_inputs, 1, scalar @$last_inputs);
+  my $last_weight_grads_mat = mat_mul($last_biase_grads_mat, $last_inputs_transpose_mat);
+
   $biase_grads_in_m_to_n_funcs->[@$biase_grads_in_m_to_n_funcs - 1] = $last_biase_grads;
   $weight_grads_mat_in_m_to_n_funcs->[@$biase_grads_in_m_to_n_funcs - 1] = $last_weight_grads_mat;
   
@@ -600,7 +590,7 @@ sub mat_mul {
   for(my $row = 0; $row < $mat1_rows_length; $row++) {
     for(my $col = 0; $col < $mat2_columns_length; $col++) {
       for(my $incol = 0; $incol < $mat1_columns_length; $incol++) {
-        $mat_out_values->[$row + $col * $mat2_rows_length]
+        $mat_out_values->[$row + $col * $mat1_rows_length]
          += $mat1_values->[$row + $incol * $mat1_rows_length] * $mat2_values->[$incol + $col * $mat2_rows_length];
       }
     }
