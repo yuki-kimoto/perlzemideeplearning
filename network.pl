@@ -118,18 +118,21 @@ sub backprop {
   my $label_number = $mnist_train_label_info->{label_numbers}[$training_data_index];
   my $desired_outputs = probabilize_desired_outputs($label_number);
   
-  # バイアスの傾きを0で初期化
+  # 各層のバイアスの傾き
   my $biase_grads_in_layers = [];
-  for (my $layer_index = 0; $layer_index < @$neurons_count_in_layers - 1; $layer_index++) {
-    my $output_neurons_count = $neurons_count_in_layers->[$layer_index + 1];
-    $biase_grads_in_layers->[$layer_index] = [(0) x $output_neurons_count];
-  }
-
-  # 重みの傾きを0で初期化
+  
+  # 各層の重みの傾き
   my $weight_grads_in_layers = [];
+  
+  # バイアスの傾きと重みの傾きの初期化
   for (my $layer_index = 0; $layer_index < @$neurons_count_in_layers - 1; $layer_index++) {
     my $input_neurons_count = $neurons_count_in_layers->[$layer_index];
     my $output_neurons_count = $neurons_count_in_layers->[$layer_index + 1];
+
+    # バイアスの傾きを0で初期化
+    $biase_grads_in_layers->[$layer_index] = array_new_zero($output_neurons_count);
+
+    # 重みの傾きを0で初期化
     my $weights_length = $input_neurons_count * $output_neurons_count;
     $weight_grads_in_layers->[$layer_index] = [(0) x $weights_length];
   }
