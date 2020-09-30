@@ -12,9 +12,11 @@
 # 3 6
 
 # 列優先でのデータのもちかた
-my $values = [1, 2, 3, 4, 5, 6];
-my $rows_length = 3;
-my $columns_length = 2;
+my $mat = {
+  values => [1, 2, 3, 4, 5, 6],
+  rows_length => 3,
+  columns_length => 2,
+};
 </pre>
 
 この行列を転置するとすると以下のようになります。行と列が入れ替わります。
@@ -28,9 +30,11 @@ my $columns_length = 2;
 # 4 5 6
 
 # 列優先でのデータのもちかた
-my $values = [1, 4, 2, 5, 3, 6];
-my $rows_length = 2;
-my $columns_length = 3;
+my $mat_transpose = {
+  values => [1, 4, 2, 5, 3, 6],
+  rows_length => 2,
+  columns_length => 3,
+};
 </pre>
 
 <h3>転置行列を求めるPerlプログラム</h3>

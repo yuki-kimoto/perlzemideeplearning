@@ -1,6 +1,74 @@
 use strict;
 use warnings;
 
+# 行列の積を求める
+sub mat_mul {
+  my ($mat1, $mat2) = @_;
+  
+  my $mat1_rows_length = $mat1->{rows_length};
+  my $mat1_columns_length = $mat1->{columns_length};
+  my $mat1_values = $mat1->{values};
+  
+  my $mat2_rows_length = $mat2->{rows_length};
+  my $mat2_columns_length = $mat2->{columns_length};
+  my $mat2_values = $mat2->{values};
+  
+  # 行列の積の計算
+  my $mat_out_values = [];
+  for(my $row = 0; $row < $mat1_rows_length; $row++) {
+    for(my $col = 0; $col < $mat2_columns_length; $col++) {
+      for(my $incol = 0; $incol < $mat1_columns_length; $incol++) {
+        $mat_out_values->[$row + $col * $mat1_rows_length]
+         += $mat1_values->[$row + $incol * $mat1_rows_length] * $mat2_values->[$incol + $col * $mat2_rows_length];
+      }
+    }
+  }
+  
+  my $mat_out = {
+    rows_length => $mat1_rows_length,
+    columns_length => $mat2_columns_length,
+    values => $mat_out_values,
+  };
+  
+  return $mat_out;
+}
+
+# 重み(3行2列の行列)
+# 1 4
+# 2 5
+# 3 6
+my $mat1 = {
+  values => [1, 2, 3, 4, 5, 6],
+  rows_length => 3,
+  columns_length => 2,
+};
+
+# 入力ベクトル(2行1列の行列)
+# 7 9
+# 8 10
+my $mat2 = {
+  values => [7, 8, 9, 10],
+  rows_length => 2,
+  columns_length => 2,
+};
+
+# 計算方法
+# 1 * 7 + 4 * 8    1 * 9 + 4 * 10
+# 2 * 7 + 5 * 8    2 * 9 + 5 * 10 
+# 3 * 7 + 6 * 8    3 * 9 + 6 * 10
+my $outputs_mul = mat_mul($mat1, $mat2);
+
+# rows_length => 3, columns_length => 2, values : [39, 54, 69, 49, 68, 87]
+use Data::Dumper;
+print Dumper $outputs_mul;
+
+
+
+__END__
+
+use strict;
+use warnings;
+
 # 列優先の行列の作成
 sub mat_new {
   my ($values, $rows_length, $columns_length) = @_;
