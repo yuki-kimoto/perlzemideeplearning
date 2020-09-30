@@ -114,9 +114,9 @@ sub backprop {
   my $first_inputs_packed = substr($mnist_train_image_data, $image_unit_length * $training_data_index, $image_unit_length);
   my $first_inputs = [unpack("C$image_unit_length", $first_inputs_packed)];
   
-  # 期待される出力(確率化する)
+  # 期待される出力を確率分布化する
   my $label_number = $mnist_train_label_info->{label_numbers}[$training_data_index];
-  my $desired_outputs = probabilize_outputs($label_number);
+  my $desired_outputs = probabilize_desired_outputs($label_number);
   
   # バイアスの傾きを0で初期化
   my $biase_grads_in_layers = [];
@@ -259,7 +259,8 @@ sub backprop {
   return $grads;
 }
 
-sub probabilize_outputs {
+# 期待される出力を確率分布化する
+sub probabilize_desired_outputs {
   my ($label_number) = @_;
   
   my $desired_outputs = [];
