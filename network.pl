@@ -28,35 +28,21 @@ for (my $i = 0; $i < @$neurons_count_in_layers - 1; $i++) {
   my $inputs_length = $neurons_count_in_layers->[$i];
   my $outputs_length = $neurons_count_in_layers->[$i + 1];
   
+  # バイアスを0で初期化
+  my $biases = array_new_zero($outputs_length);
+  
+  # Xivierの初期値で重みを初期化。重みは列優先行列
+  my $weights_mat = mat_new_zero($outputs_length, $inputs_length);
+  my $weights_length = $weights_mat->{rows_length} * $weights_mat->{columns_length};
+  $weights_mat->{values} = array_xivier_init_value($inputs_length, $weights_length);
+
   # 入力数と出力数を設定
   $m_to_n_func_infos->[$i] = {
     inputs_length => $inputs_length,
     outputs_length => $outputs_length,
-  }
-}
-
-# 各層のバイアス
-my $biases_in_layers = [];
-
-# 各層の重み
-my $weights_mat_in_layers = [];
-
-# 各層のバイアスと重みの初期化
-for (my $m_to_n_func_index = 0; $m_to_n_func_index < @$m_to_n_func_infos; $m_to_n_func_index++) {
-  my $inputs_length = $m_to_n_func_infos->[$m_to_n_func_index]{inputs_length};
-  my $outputs_length = $m_to_n_func_infos->[$m_to_n_func_index]{outputs_length};
-  
-  # バイアスの初期化 - バイアスは各層の入力から出力への変換に利用されるので、バイアスの組の数は、入力層、隠れ層、出力層の合計より1小さいことに注意。
-  # 0で初期化
-  $biases_in_layers->[$m_to_n_func_index] = array_new_zero($outputs_length);
-  
-  # 重みの初期化 - 重みは各層の入力から出力への変換に利用されるので、重みの組の数は、入力層、隠れ層、出力層の合計より1小さいことに注意。
-  # 重みは列優先の行列と考える
-  # Xivierの初期値で初期化
-  my $weights_mat = mat_new_zero($outputs_length, $inputs_length);
-  my $weights_length = $weights_mat->{rows_length} * $weights_mat->{columns_length};
-  $weights_mat->{values} = array_xivier_init_value($inputs_length, $weights_length);
-  $weights_mat_in_layers->[$m_to_n_func_index] = $weights_mat;
+    biases => $biases,
+    weights_mat => $weights_mat,
+  };
 }
 
 # MNIEST画像情報を読み込む - 入力用につかう手書きの訓練データ
@@ -97,13 +83,13 @@ for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
       # 重みの損失関数に関する傾き
       my $weight_grads_mat = $grad->{weights_mat};
       
-      # 各層のバイアスと重みを更新
+      # 各変換関数のバイアスと重みを更新
       for (my $m_to_n_func_index = 0; $m_to_n_func_index < @$m_to_n_func_infos; $m_to_n_func_index++) {
-        # 各層のバイアスを更新(学習率を考慮し、ミニバッチ数で割る)
-        update_params($biases_in_layers->[$m_to_n_func_index], $biase_grads->[$m_to_n_func_index], $learning_rate, $mini_batch_size);
+        # 各変換関数のバイアスを更新(学習率を考慮し、ミニバッチ数で割る)
+        update_params($m_to_n_func_infos->[$m_to_n_func_index]{biases}, $biase_grads->[$m_to_n_func_index], $learning_rate, $mini_batch_size);
         
-        # 各層の重みを更新(学習率を考慮し、傾きの合計をミニバッチ数で、ミニバッチ数で割る)
-        update_params($weights_mat_in_layers->[$m_to_n_func_index]{values}, $weight_grads_mat->[$m_to_n_func_index]{values}, $learning_rate, $mini_batch_size);
+        # 各変換関数の重みを更新(学習率を考慮し、傾きの合計をミニバッチ数で、ミニバッチ数で割る)
+        update_params($m_to_n_func_infos->[$m_to_n_func_index]{weights_mat}{values}, $weight_grads_mat->[$m_to_n_func_index]{values}, $learning_rate, $mini_batch_size);
       }
     }
   }
@@ -131,10 +117,10 @@ sub backprop {
   my $label_number = $mnist_train_label_info->{label_numbers}[$training_data_index];
   my $desired_outputs = probabilize_desired_outputs($label_number);
   
-  # 各層のバイアスの傾き
+  # 各変換関数のバイアスの傾き
   my $biase_grads_in_layers = [];
   
-  # 各層の重みの傾き
+  # 各変換関数の重みの傾き
   my $weight_grads_mat_in_layers = [];
   
   # バイアスの傾きと重みの傾きの初期化
@@ -163,7 +149,7 @@ sub backprop {
     my $outputs_length = $m_to_n_func_infos->[$m_to_n_func_index]{outputs_length};
     
     # 重み行列
-    my $weights_mat = $weights_mat_in_layers->[$m_to_n_func_index];
+    my $weights_mat = $m_to_n_func_infos->[$m_to_n_func_index]{weights_mat};
     
     # 入力行列
     my $cur_inputs_rows_length = $outputs_length;
@@ -179,7 +165,7 @@ sub backprop {
     my $mul_weights_inputs = $mul_weights_inputs_mat->{values};
     
     # バイアス
-    my $biases = $biases_in_layers->[$m_to_n_func_index];
+    my $biases = $m_to_n_func_infos->[$m_to_n_func_index]{biases};
     
     # 出力 - 重みと入力の行列積とバイアスの和
     my $outputs = array_add($mul_weights_inputs, $biases);
