@@ -574,6 +574,7 @@ sub mat_new_zero {
   return $mat;
 }
 
+# 行列の積を求める
 sub mat_mul {
   my ($mat1, $mat2) = @_;
   
