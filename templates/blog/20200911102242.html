@@ -34,27 +34,8 @@ ReLU関数は隠れ層における活性化関数として利用されますが�
 
 <h3>ReLU関数の導関数</h3>
 
-ReLU関数の導関数をPerlで書いてみます。導関数とは、関数を微分したものを意味します。ReLU関数の導関数は、バックプロパゲーションに利用します。
+ReLU関数の導関数については以下を参考にしてください。
 
-<pre>
-use strict;
-use warnings;
-
-sub relu_derivative {
-  my ($x) = @_;
-  
-  my $relu_derivative = 1 * ($x > 0.0);
-  
-  return $relu_derivative;
-}
-
-my $value1 = 0.7;
-my $relu_derivative1 = relu_derivative($value1);
-
-print "$relu_derivative1\n";
-
-my $value2 = -0.4;
-my $relu_derivative2 = relu_derivative($value2);
-
-print "$relu_derivative2\n";
-</pre>
+<ul>
+  <li><a href="/blog/20201001161518.html">ReLU関数の導関数</a></li>
+</ul>
