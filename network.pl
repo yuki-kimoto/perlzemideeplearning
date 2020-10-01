@@ -20,7 +20,7 @@ my $mini_batch_size = 10;
 # 0～9の10個に分類する          (出力)
 my $neurons_count_in_layers = [728, 30, 10];
 
-# 各層のm個の入力をn個の出力に変換する関数のの情報。入力数、出力数、バイアス、重み
+# 各層のm個の入力をn個の出力に変換する関数の情報。入力数、出力数、バイアス、重み
 my $m_to_n_func_infos = [];
 
 # 各層のニューロン数からmからnへの変換関数の情報を作成
@@ -267,16 +267,12 @@ sub backprop {
 
     # 損失関数の微小変化 / この層のバイアスの微小変化(バックプロパゲーションで求める)
     # 次の層の重みの傾きの転置行列とバイアスの傾きの転置行列をかけて、それぞれの要素に、活性化関数の導関数をかける
-    my $biase_grads = [];
     my $forword_biase_grads = $biase_grads_in_m_to_n_funcs->[$m_to_n_func_index + 1];
     my $forword_weight_grads_mat = $weight_grads_mat_in_m_to_n_funcs->[$m_to_n_func_index + 1];
-    my $forword_weight_grads_mat_values = $forword_weight_grads_mat->{values};
-    my $forword_weight_columns_length = $forword_weight_grads_mat->{columns_length};
-    for (my $biase_index = 0; $biase_index < @$forword_biase_grads; $biase_index++) {
-      for (my $weight_columns_index = 0; $weight_columns_index < $forword_weight_columns_length; $weight_columns_index++) {
-        $biase_grads->[$weight_columns_index] += $forword_biase_grads->[$biase_index] * $forword_weight_grads_mat_values->[$biase_index + @$forword_biase_grads * $weight_columns_index];
-      }
-    }
+    my $forword_weight_grads_mat_transpose = mat_transpose($forword_weight_grads_mat);
+    my $forword_biase_grads_mat = mat_new($forword_biase_grads, scalar @$forword_biase_grads, 1);
+    my $biase_grads_mat = mat_mul($forword_weight_grads_mat_transpose, $forword_biase_grads_mat);
+    my $biase_grads = $biase_grads_mat->{values};
     
     $biase_grads = array_sigmoid_derivative($biase_grads);
     
@@ -617,4 +613,29 @@ sub mat_new {
   };
   
   return $mat;
+}
+
+# 行列を転置(行列の入れ替え)
+sub mat_transpose {
+  my ($mat) = @_;
+  
+  my $rows_length = $mat->{rows_length};
+  my $columns_length = $mat->{columns_length};
+  my $length = $rows_length * $columns_length;
+  
+  my $mat_trans ={};
+  $mat_trans->{rows_length} = $columns_length;
+  $mat_trans->{columns_length} = $rows_length;
+  
+  my $values = $mat->{values};
+  my $mat_trans_values = [];
+  
+  for (my $row_index = 0; $row_index < $rows_length; $row_index++) {
+    for (my $column_index = 0; $column_index < $columns_length; $column_index++) {
+      $mat_trans_values->[$row_index * $columns_length + $column_index] = $values->[$column_index * $rows_length+ $row_index];
+    }
+  }
+  $mat_trans->{values} = $mat_trans_values;
+  
+  return $mat_trans;
 }

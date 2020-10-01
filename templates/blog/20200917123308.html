@@ -45,7 +45,7 @@ my $mat_transpose = {
 use strict;
 use warnings;
 
-sub transpose {
+sub mat_transpose {
   my ($mat) = @_;
   
   my $rows_length = $mat->{rows_length};
@@ -75,7 +75,7 @@ my $mat = {
   columns_length => 2,
 };
 
-my $mat_trans = transpose($mat);
+my $mat_trans = mat_transpose($mat);
 
 # Row:2, Column:3, Values:1 4 2 5 3 6
 print "Row:$mat_trans->{rows_length}, Column:$mat_trans->{columns_length}, Values:@{$mat_trans->{values}}\n";
