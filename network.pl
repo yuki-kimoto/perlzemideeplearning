@@ -273,24 +273,14 @@ sub backprop {
     my $forword_biase_grads_mat = mat_new($forword_biase_grads, scalar @$forword_biase_grads, 1);
     my $biase_grads_mat = mat_mul($forword_weight_grads_mat_transpose, $forword_biase_grads_mat);
     my $biase_grads = $biase_grads_mat->{values};
-    
     $biase_grads = array_sigmoid_derivative($biase_grads);
     
     # 損失関数の微小変化 / この層の重みの微小変化(バックプロパゲーションで求める)
-    my $weights_grads_values = [];
+    $biase_grads_mat = mat_new($biase_grads, scalar @$biase_grads, 1);
     my $inputs = $inputs_in_m_to_n_funcs->[$m_to_n_func_index];
-    for (my $inputs_index = 0; $inputs_index < @$inputs; $inputs_index++) {
-      for (my $biase_grads_index = 0; $biase_grads_index < @$biase_grads; $biase_grads_index++) {
-        $weights_grads_values->[$biase_grads_index + @$biase_grads * $inputs_index]
-          = $biase_grads->[$biase_grads_index] * $inputs->[$inputs_index];
-      }
-    }
+    my $inputs_mat_transpose = mat_new($inputs, 1, scalar @$inputs);
+    my $weights_grads_mat = mat_mul($biase_grads_mat, $inputs_mat_transpose);
     
-    my $weights_grads_mat = {
-      rows_length => scalar @$biase_grads,
-      columns_length => scalar @$inputs,
-      values => $weights_grads_values,
-    };
     $weight_grads_mat_in_m_to_n_funcs->[$m_to_n_func_index] = $weights_grads_mat;
   }
 
