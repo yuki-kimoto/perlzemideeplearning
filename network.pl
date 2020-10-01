@@ -78,6 +78,12 @@ for (my $m_to_n_func_index = 0; $m_to_n_func_index < @$m_to_n_func_infos; $m_to_
   $m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{weight_grad_totals_mat} = $weight_grad_totals_mat;
 }
 
+# 総実行回数
+my $total_count = 0;
+
+# 正解数
+my $answer_match_count = 0;
+
 # エポックの回数だけ訓練セットを実行
 for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
   
@@ -152,12 +158,13 @@ sub backprop {
   
   my $first_inputs_length = $m_to_n_func_infos->[0]{inputs_length};
   
-  # 入力
+  # 入力(0～255の値を0～1に変換)
   my $image_unit_length = $mnist_train_image_info->{rows_count} *  $mnist_train_image_info->{columns_count};
   my $mnist_train_image_data = $mnist_train_image_info->{data};
   my $first_inputs_packed = substr($mnist_train_image_data, $image_unit_length * $training_data_index, $image_unit_length);
-  my $first_inputs = [unpack("C$first_inputs_length", $first_inputs_packed)];
-
+  my $first_inputs_raw = [unpack("C$first_inputs_length", $first_inputs_packed)];
+  my $first_inputs = array_div_scalar($first_inputs_raw, 255);
+  
   # 期待される出力を確率分布化する
   my $label_number = $mnist_train_label_info->{label_numbers}[$training_data_index];
   my $desired_outputs = probabilize_desired_outputs($label_number);
@@ -221,9 +228,6 @@ sub backprop {
     # バックプロパゲーションのために出力を保存
     push @$outputs_in_m_to_n_funcs, $outputs;
     
-    # 現在の入力を更新
-    $cur_inputs = $activate_outputs;
-    
     # バックプロパゲーションのために次の入力を保存
     push @$inputs_in_m_to_n_funcs, $activate_outputs;
   }
@@ -236,8 +240,19 @@ sub backprop {
   
   # 誤差
   my $cost = cross_entropy_cost($last_activate_outputs, $desired_outputs);
+  print "Cost: " . sprintf("%.3f", $cost) . "\n";
   
-  print "Cost: $cost\n";
+  # 正解したかどうか
+  my $answer = max_index($last_activate_outputs);
+  my $desired_answer = max_index($desired_outputs);
+  $total_count++;
+  if ($answer == $desired_answer) {
+    $answer_match_count++;
+  }
+  
+  # 正解率を出力
+  my $match_rate = $answer_match_count / $total_count;
+  print "Match Rate: " . sprintf("%.02f", 100 * $match_rate) . "%\n";
   
   # 活性化された出力の微小変化 / 最後の出力の微小変化 
   my $grad_last_outputs_to_activate_func = array_sigmoid_derivative($last_outputs);
@@ -253,13 +268,13 @@ sub backprop {
   
   # 損失関数の微小変化 / 最終の層の重みの微小変化
   my $last_biase_grads_mat = mat_new($last_biase_grads, scalar @$last_biase_grads, 1);
-  my $last_inputs = $inputs_in_m_to_n_funcs->[-1];
+  my $last_inputs = $inputs_in_m_to_n_funcs->[@$inputs_in_m_to_n_funcs - 1];
   my $last_inputs_transpose_mat = mat_new($last_inputs, 1, scalar @$last_inputs);
   my $last_weight_grads_mat = mat_mul($last_biase_grads_mat, $last_inputs_transpose_mat);
-
+    
   $biase_grads_in_m_to_n_funcs->[@$biase_grads_in_m_to_n_funcs - 1] = $last_biase_grads;
   $weight_grads_mat_in_m_to_n_funcs->[@$biase_grads_in_m_to_n_funcs - 1] = $last_weight_grads_mat;
-  
+
   # 最後の重みとバイアスの変換より一つ前から始める
   for (my $m_to_n_func_index = @$m_to_n_func_infos - 2; $m_to_n_func_index >= 0; $m_to_n_func_index--) {
     # 活性化された出力の微小変化 / 出力の微小変化
@@ -288,7 +303,23 @@ sub backprop {
   $m_to_n_func_grad_infos->{biases} = $biase_grads_in_m_to_n_funcs;
   $m_to_n_func_grad_infos->{weights_mat} = $weight_grads_mat_in_m_to_n_funcs;
   
+  
   return $m_to_n_func_grad_infos;
+}
+
+# 配列の中で最大値のインデックスを求める。同じ数の場合は、最初の方を返す
+sub max_index {
+  my ($nums) = @_;
+  
+  my $max = $nums->[0];
+  my $max_index = 0;
+  for (my $i = 0; $i < @$nums; $i++) {
+    if ($nums->[$i] > $max) {
+      $max_index = $i;
+    }
+  }
+  
+  return $max_index;
 }
 
 # 期待される出力を確率分布化する
@@ -628,4 +659,15 @@ sub mat_transpose {
   $mat_trans->{values} = $mat_trans_values;
   
   return $mat_trans;
+}
+
+sub array_div_scalar {
+  my ($nums, $scalar_num) = @_;
+  
+  my $nums_out = [];
+  for (my $i = 0; $i < @$nums; $i++) {
+    $nums_out->[$i] = $nums->[$i] / $scalar_num;
+  }
+  
+  return $nums_out;
 }
