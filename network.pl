@@ -671,3 +671,34 @@ sub array_div_scalar {
   
   return $nums_out;
 }
+
+# softmax関数
+sub softmax {
+  my ($nums) = @_;
+  
+  my $exp_total = 0;
+  for (my $i = 0; $i < @$nums; $i++) {
+    $exp_total += exp($nums->[$i]);
+  }
+  
+  my $nums_out = [];
+  for (my $i = 0; $i < @$nums; $i++) {
+    $nums_out->[$i] = exp($nums->[$i]) / $exp_total;
+  }
+  
+  return $nums_out;
+}
+
+# softmaxクロスエントロピー誤差の導関数
+sub softmax_cross_entropy_cost_derivative {
+  my ($softmax_outputs, $desired_outputs) = @_;
+  
+  my $length = @$softmax_outputs;
+  
+  my $softmax_cross_entropy_cost_derivative = [];
+  for (my $i = 0; $i < @$softmax_outputs; $i++) {
+    $softmax_cross_entropy_cost_derivative->[$i] = ($softmax_outputs->[$i] - $desired_outputs->[$i]) / $length;
+  }
+  
+  return $softmax_cross_entropy_cost_derivative;
+}

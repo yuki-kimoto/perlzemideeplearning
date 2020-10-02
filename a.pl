@@ -1,26 +1,20 @@
 use strict;
 use warnings;
 
-sub softmax {
-  my ($nums) = @_;
+sub softmax_cross_entropy_cost_derivative {
+  my ($softmax_outputs, $desired_outputs) = @_;
   
-  my $exp_total = 0;
-  for (my $i = 0; $i < @$nums; $i++) {
-    $exp_total += exp($nums->[$i]);
+  my $length = @$softmax_outputs;
+  
+  my $softmax_cross_entropy_cost_derivative = [];
+  for (my $i = 0; $i < @$softmax_outputs; $i++) {
+    $softmax_cross_entropy_cost_derivative->[$i] = ($softmax_outputs->[$i] - $desired_outputs->[$i]) / $length;
   }
   
-  my $nums_out = [];
-  for (my $i = 0; $i < @$nums; $i++) {
-    $nums_out->[$i] = exp($nums->[$i]) / $exp_total;
-  }
-  
-  return $nums_out;
+  return $softmax_cross_entropy_cost_derivative;
 }
 
-my $outputs = [0, 0.14, 0.24];
-
-my $softmax_outputs = softmax($outputs);
-
+__END__
 # 0.306954386271124 0.329211090547647 0.363834523181229
 print "@$softmax_outputs\n";
 
