@@ -1,3 +1,20 @@
+<h2>試作版: ピュアPerlで書いたMNIST手書き認識ディープラーニング</h2>
+
+試作版: ピュアPerlで書いたMNIST手書き認識ディープラーニングを公開します。
+
+MNIST手書きデータは、<a href="http://yann.lecun.com/exdb/mnist/">THE MNIST DATABASE of handwritten digits</a>から取得したものをdataディレクトリ以下に配置しています。
+
+このディープラーニングのPerlコードは、<a href="https://nnadl-ja.github.io/nnadl_site_ja/index.html">ニューラルネットワークと深層学習</a>のソースコードを参考にしています。
+
+現在このコードは、Perlが遅すぎて、学習が進んでいるのかすら、確認することができません。ですので、デバッグ不能なコードです。
+
+純粋なPerlコードですので、ディープラーニングのアルゴリズムの概要を知るのには、利用できるでしょう...。
+
+SPVMへの部分的なリライトによって、試行錯誤を繰り返して、現実的な速度レベルまで高速化していきます。
+
+<pre>
+# network.pl
+
 use strict;
 use warnings;
 use FindBin;
@@ -745,3 +762,4 @@ sub softmax_cross_entropy_cost_derivative {
   
   return $softmax_cross_entropy_cost_derivative;
 }
+</pre>
