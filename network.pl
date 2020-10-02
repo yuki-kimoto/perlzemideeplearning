@@ -671,3 +671,21 @@ sub array_div_scalar {
   
   return $nums_out;
 }
+
+# ReLU関数
+sub relu {
+  my ($x) = @_;
+  
+  my $relu = $x * ($x > 0.0);
+  
+  return $relu;
+}
+
+# ReLU関数の導関数
+sub relu_derivative {
+  my ($x) = @_;
+  
+  my $relu_derivative = 1 * ($x > 0.0);
+  
+  return $relu_derivative;
+}
