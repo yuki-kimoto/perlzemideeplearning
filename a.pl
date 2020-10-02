@@ -1,6 +1,32 @@
 use strict;
 use warnings;
 
+sub softmax {
+  my ($nums) = @_;
+  
+  my $exp_total = 0;
+  for (my $i = 0; $i < @$nums; $i++) {
+    $exp_total += exp($nums->[$i]);
+  }
+  
+  my $nums_out = [];
+  for (my $i = 0; $i < @$nums; $i++) {
+    $nums_out->[$i] = exp($nums->[$i]) / $exp_total;
+  }
+  
+  return $nums_out;
+}
+
+my $outputs = [0, 0.14, 0.24];
+
+my $softmax_outputs = softmax($outputs);
+
+# 0.306954386271124 0.329211090547647 0.363834523181229
+print "@$softmax_outputs\n";
+
+__END__
+
+
 # 行列の積を求める
 sub mat_mul {
   my ($mat1, $mat2) = @_;
