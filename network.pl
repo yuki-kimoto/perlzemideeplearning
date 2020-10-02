@@ -689,3 +689,28 @@ sub relu_derivative {
   
   return $relu_derivative;
 }
+
+# 配列の各要素にReLU関数を適用する
+sub array_relu {
+  my ($nums) = @_;
+  
+  my $nums_out = [];
+  for (my $i = 0; $i < @$nums; $i++) {
+    $nums_out->[$i] = relu($nums->[$i]);
+  }
+  
+  return $nums_out;
+}
+
+# 配列の各要素にReLU関数の導関数を適用する
+sub array_relu_derivative {
+  my ($nums) = @_;
+  
+  my $nums_out = [];
+  for (my $i = 0; $i < @$nums; $i++) {
+    $nums_out->[$i] = relu_derivative($nums->[$i]);
+  }
+  
+  return $nums_out;
+}
+
