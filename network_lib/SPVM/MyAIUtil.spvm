@@ -1,4 +1,6 @@
 package SPVM::MyAIUtil : precompile {
+  use SPVM::Math (expf);
+  
   # softmaxクロスエントロピー誤差の導関数
   sub softmax_cross_entropy_cost_derivative : float[] ($softmax_outputs : float[], $desired_outputs : float[]) {
     
@@ -10,5 +12,22 @@ package SPVM::MyAIUtil : precompile {
     }
     
     return $softmax_cross_entropy_cost_derivative;
+  }
+
+  # softmax関数
+  sub softmax : float[] ($nums : float[]) {
+    
+    my $nums_length = @$nums;
+    my $exp_total = 0f;
+    for (my $i = 0; $i < $nums_length; $i++) {
+      $exp_total += expf($nums->[$i]);
+    }
+    
+    my $nums_out = new float[$nums_length];
+    for (my $i = 0; $i < $nums_length; $i++) {
+      $nums_out->[$i] = expf($nums->[$i]) / $exp_total;
+    }
+    
+    return $nums_out;
   }
 }

@@ -240,7 +240,7 @@ sub backprop {
   my $last_activate_outputs = pop @$inputs_in_m_to_n_funcs;
   
   # softmax関数
-  my $softmax_outputs = softmax($last_activate_outputs);
+  my $softmax_outputs = SPVM::MyAIUtil->softmax(SPVM::new_float_array($last_activate_outputs))->to_elems;
   
   # 誤差
   my $cost = cross_entropy_cost($softmax_outputs, $desired_outputs);
@@ -733,18 +733,4 @@ sub softmax {
   }
   
   return $nums_out;
-}
-
-# softmaxクロスエントロピー誤差の導関数
-sub softmax_cross_entropy_cost_derivative {
-  my ($softmax_outputs, $desired_outputs) = @_;
-  
-  my $length = @$softmax_outputs;
-  
-  my $softmax_cross_entropy_cost_derivative = [];
-  for (my $i = 0; $i < @$softmax_outputs; $i++) {
-    $softmax_cross_entropy_cost_derivative->[$i] = ($softmax_outputs->[$i] - $desired_outputs->[$i]) / $length;
-  }
-  
-  return $softmax_cross_entropy_cost_derivative;
 }
