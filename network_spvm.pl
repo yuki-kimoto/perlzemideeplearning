@@ -164,7 +164,7 @@ sub backprop {
   my $mnist_train_image_data = $mnist_train_image_info->{data};
   my $first_inputs_packed = substr($mnist_train_image_data, $image_unit_length * $training_data_index, $image_unit_length);
   my $first_inputs_raw = [unpack("C$first_inputs_length", $first_inputs_packed)];
-  my $first_inputs = array_div_scalar($first_inputs_raw, 255);
+  my $first_inputs = SPVM::MyAIUtil->array_div_scalar(SPVM::new_float_array($first_inputs_raw), 255)->to_elems;
   
   # 期待される出力を確率分布化する
   my $label_number = $mnist_train_label_info->{label_numbers}[$training_data_index];
@@ -705,32 +705,4 @@ sub mat_transpose {
   $mat_trans->{values} = $mat_trans_values;
   
   return $mat_trans;
-}
-
-sub array_div_scalar {
-  my ($nums, $scalar_num) = @_;
-  
-  my $nums_out = [];
-  for (my $i = 0; $i < @$nums; $i++) {
-    $nums_out->[$i] = $nums->[$i] / $scalar_num;
-  }
-  
-  return $nums_out;
-}
-
-# softmax関数
-sub softmax {
-  my ($nums) = @_;
-  
-  my $exp_total = 0;
-  for (my $i = 0; $i < @$nums; $i++) {
-    $exp_total += exp($nums->[$i]);
-  }
-  
-  my $nums_out = [];
-  for (my $i = 0; $i < @$nums; $i++) {
-    $nums_out->[$i] = exp($nums->[$i]) / $exp_total;
-  }
-  
-  return $nums_out;
 }
