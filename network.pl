@@ -102,10 +102,10 @@ for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
       my $weights_mat = $m_to_n_func_info->{weights_mat};
       
       # ミニバッチにおける各変換関数のバイアスの傾きの合計を0で初期化して作成
-      array_init_zero($m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{biase_grad_totals});
+      $m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{biase_grad_totals} = array_new_zero(scalar @{$m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{biase_grad_totals}});
 
       # ミニバッチにおける各変換関数の重みの傾きの合計を0で初期化して作成
-      array_init_zero($m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{weight_grad_totals_mat}{values});
+      $m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{weight_grad_totals_mat}{values} = array_new_zero(scalar @{$m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{weight_grad_totals_mat}{values}});
     }
     
     for my $training_data_index (@indexed_for_mini_batch) {
@@ -609,15 +609,6 @@ sub array_new_zero {
   my $nums = [(0) x $length];
   
   return $nums;
-}
-
-# 既存配列を0で初期化
-sub array_init_zero {
-  my ($nums) = @_;
-  
-  for (my $i = 0; $i < @$nums; $i++) {
-    $nums->[$i] = 0;
-  }
 }
 
 # 行列を0で初期化

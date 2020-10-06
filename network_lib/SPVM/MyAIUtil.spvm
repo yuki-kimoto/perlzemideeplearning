@@ -1,6 +1,285 @@
 package SPVM::MyAIUtil : precompile {
-  use SPVM::Math (expf);
+  use SPVM::Math (expf, sqrtf, logf, sinf);
+  use SPVM::Util (rand);
 
+  # 配列の中で最大値のインデックスを求める。同じ数の場合は、最初の方を返す
+  sub max_index : int ($nums : float[]) {
+    
+    my $max = $nums->[0];
+    my $max_index = 0;
+    for (my $i = 0; $i < @$nums; $i++) {
+      if ($nums->[$i] > $max) {
+        $max_index = $i;
+      }
+    }
+    
+    return $max_index;
+  }
+
+  # 期待される出力を確率分布化する
+  sub probabilize_desired_outputs : float[] ($label_number : int) {
+    
+    my $desired_outputs = new float[10];
+    for (my $desired_outputs_index = 0; $desired_outputs_index < 10; $desired_outputs_index++) {
+      if ($label_number == $desired_outputs_index) {
+        $desired_outputs->[$desired_outputs_index] = 1;
+      }
+      else {
+        $desired_outputs->[$desired_outputs_index] = 0;
+      }
+    }
+    
+    return $desired_outputs;
+  }
+
+  # 配列の各要素の和
+  sub array_add : float[] ($nums1 : float[], $nums2 : float[]) {
+    
+    if (@$nums1 != @$nums2) {
+      die "Array length is diffent";
+    }
+    
+    my $nums_out = new float[scalar @$nums1];
+    for (my $i = 0; $i < @$nums1; $i++) {
+      $nums_out->[$i] = $nums1->[$i] + $nums2->[$i];
+    }
+    
+    return $nums_out;
+  }
+
+  # 配列の各要素の和を最初の引数に足す
+  sub array_add_inplace : void ($nums1 : float[], $nums2 : float[]) {
+    
+    if (@$nums1 != @$nums2) {
+      die "Array length is diffent";
+    }
+    
+    for (my $i = 0; $i < @$nums1; $i++) {
+      $nums1->[$i] += $nums2->[$i];
+    }
+  }
+
+  # 配列の各要素の積
+  sub array_mul : float[] ($nums1 : float[], $nums2 : float[]) {
+    
+    if (@$nums1 != @$nums2) {
+      die "Array length is diffent";
+    }
+    
+    my $nums_out = new float[scalar @$nums1];
+    for (my $i = 0; $i < @$nums1; $i++) {
+      $nums_out->[$i] = $nums1->[$i] * $nums2->[$i];
+    }
+    
+    return $nums_out;
+  }
+
+  # Xivierの初期値を取得
+  sub xivier_init_value : float ($inputs_length : int) {
+    
+    return randn(0, 1 / sqrtf($inputs_length));
+  }
+
+  # 配列の各要素にXivierの初期値を取得を適用する
+  sub array_xivier_init_value : float[] ($inputs_length : int, $length : int) {
+    
+    my $nums_out = new float[$length];
+    for (my $i = 0; $i < $length; $i++) {
+      $nums_out->[$i] = xivier_init_value($inputs_length);
+    }
+    
+    return $nums_out;
+  }
+
+  # シグモイド関数
+  sub sigmoid : float ($x : float) {
+    
+    my $sigmoid = 1.0f / (1.0f + expf(-$x));
+    
+    return $sigmoid;
+  }
+
+  # シグモイド関数の導関数
+  sub sigmoid_derivative : float ($x : float) {
+    
+    my $sigmoid_derivative = sigmoid($x) * (1 - sigmoid($x));
+    
+    return $sigmoid_derivative;
+  }
+
+  # 配列の各要素にシグモイド関数を適用する
+  sub array_sigmoid : float[] ($nums : float[]) {
+    
+    my $nums_out = new float[scalar @$nums];
+    for (my $i = 0; $i < @$nums; $i++) {
+      $nums_out->[$i] = sigmoid($nums->[$i]);
+    }
+    
+    return $nums_out;
+  }
+
+  # 配列の各要素にシグモイド関数の導関数を適用する
+  sub array_sigmoid_derivative : float[] ($nums : float[]) {
+    
+    my $nums_out = new float[scalar @$nums];
+    for (my $i = 0; $i < @$nums; $i++) {
+      $nums_out->[$i] = sigmoid_derivative($nums->[$i]);
+    }
+    
+    return $nums_out;
+  }
+
+  # ReLU関数
+  sub relu : float ($x : float) {
+    
+    my $relu = $x * ($x > 0.0);
+    
+    return $relu;
+  }
+
+  # ReLU関数の導関数
+  sub relu_derivative : float ($x : float) {
+    
+    my $relu_derivative = 1 * ($x > 0.0);
+    
+    return $relu_derivative;
+  }
+
+  # 配列の各要素にReLU関数を適用する
+  sub array_relu : float[] ($nums : float[]) {
+    
+    my $nums_out = new float[scalar @$nums];
+    for (my $i = 0; $i < @$nums; $i++) {
+      $nums_out->[$i] = relu($nums->[$i]);
+    }
+    
+    return $nums_out;
+  }
+
+  # 配列の各要素にReLU関数の導関数を適用する
+  sub array_relu_derivative : float[] ($nums : float[]) {
+    
+    my $nums_out = new float[scalar @$nums];
+    for (my $i = 0; $i < @$nums; $i++) {
+      $nums_out->[$i] = relu_derivative($nums->[$i]);
+    }
+    
+    return $nums_out;
+  }
+
+  # クロスエントロピーコスト
+  sub cross_entropy_cost : float ($vec_a : float[], $vec_y : float[]) {
+    
+    my $cross_entropy_cost = 0;
+    for (my $i = 0; $i < @$vec_a; $i++) {
+      my $tmp = -$vec_y->[$i] * logf($vec_a->[$i]) - (1 - $vec_y->[$i]) * logf(1 - $vec_a->[$i]);
+      $cross_entropy_cost += $tmp;
+    }
+
+    return $cross_entropy_cost;
+  }
+
+  # クロスエントロピーコストの導関数
+  sub cross_entropy_cost_derivative : float[] ($vec_a : float[], $vec_y : float[]) {
+    
+    my $vec_out = new float[scalar @$vec_a];
+    for (my $i = 0; $i < @$vec_a; $i++) {
+      $vec_out->[$i] = $vec_a->[$i] - $vec_y->[$i];
+    }
+    
+    return $vec_out;
+  }
+
+  # 正規分布に従う乱数を求める関数
+  # $m は平均, $sigma は標準偏差、
+  sub randn : float ($m : float, $sigma : float) {
+    my $r1 = rand();
+    my $r2 = rand();
+    while ($r1 == 0) { $r1 = rand(); }
+    return ($sigma * sqrtf(-2 * logf($r1)) * sinf(2f * 3.14159265359f * $r2)) + $m;
+  }
+
+  # 配列を0で初期化して作成
+  sub array_new_zero : float[] ($length : int) {
+    
+    my $nums = new float[$length];
+    
+    return $nums;
+  }
+
+  # 行列を0で初期化
+  sub mat_new_zero : SPVM::MyAIUtil::FloatMatrix ($rows_length : int, $columns_length : int) {
+    my $values_length = $rows_length * $columns_length;
+    my $mat = new SPVM::MyAIUtil::FloatMatrix;
+    $mat->{rows_length} = $rows_length;
+    $mat->{columns_length} = $columns_length;
+    $mat->{values} = new float[$values_length];
+    
+    return $mat;
+  }
+
+  # 行列の積を求める
+  sub mat_mul : SPVM::MyAIUtil::FloatMatrix ($mat1 : SPVM::MyAIUtil::FloatMatrix, $mat2 : SPVM::MyAIUtil::FloatMatrix) {
+    my $mat1_rows_length = $mat1->{rows_length};
+    my $mat1_columns_length = $mat1->{columns_length};
+    my $mat1_values = $mat1->{values};
+    
+    my $mat2_rows_length = $mat2->{rows_length};
+    my $mat2_columns_length = $mat2->{columns_length};
+    my $mat2_values = $mat2->{values};
+    
+    # 行列の積の計算
+    my $mat_out_values = new float[$mat1_rows_length * $mat2_columns_length];
+    for(my $row = 0; $row < $mat1_rows_length; $row++) {
+      for(my $col = 0; $col < $mat2_columns_length; $col++) {
+        for(my $incol = 0; $incol < $mat1_columns_length; $incol++) {
+          $mat_out_values->[$row + $col * $mat1_rows_length]
+           += $mat1_values->[$row + $incol * $mat1_rows_length] * $mat2_values->[$incol + $col * $mat2_rows_length];
+        }
+      }
+    }
+    
+    my $mat_out = mat_new($mat_out_values, $mat1_rows_length, $mat2_columns_length);
+    
+    return $mat_out;
+  }
+
+  # 列優先の行列の作成
+  sub mat_new : SPVM::MyAIUtil::FloatMatrix ($values : float[], $rows_length : int, $columns_length : int) {
+    
+    my $mat = new SPVM::MyAIUtil::FloatMatrix;
+    $mat->{rows_length} = $rows_length;
+    $mat->{columns_length} = $columns_length;
+    $mat->{values} = $values;
+    
+    return $mat;
+  }
+
+  # 行列を転置(行列の入れ替え)
+  sub mat_transpose : SPVM::MyAIUtil::FloatMatrix ($mat : SPVM::MyAIUtil::FloatMatrix) {
+    
+    my $rows_length = $mat->{rows_length};
+    my $columns_length = $mat->{columns_length};
+    my $length = $rows_length * $columns_length;
+    
+    my $mat_trans = new SPVM::MyAIUtil::FloatMatrix;
+    $mat_trans->{rows_length} = $columns_length;
+    $mat_trans->{columns_length} = $rows_length;
+    
+    my $values = $mat->{values};
+    my $mat_trans_values = new float[$length];
+    
+    for (my $row_index = 0; $row_index < $rows_length; $row_index++) {
+      for (my $column_index = 0; $column_index < $columns_length; $column_index++) {
+        $mat_trans_values->[$row_index * $columns_length + $column_index] = $values->[$column_index * $rows_length+ $row_index];
+      }
+    }
+    $mat_trans->{values} = $mat_trans_values;
+    
+    return $mat_trans;
+  }
+  
+  # 配列の要素のスカラー値との積
   sub array_div_scalar : float[] ($nums : float[], $scalar_num : float) {
     
     my $nums_out = new float[scalar @$nums];
@@ -40,4 +319,10 @@ package SPVM::MyAIUtil : precompile {
     
     return $softmax_cross_entropy_cost_derivative;
   }
+}
+
+package SPVM::MyAIUtil::FloatMatrix : public {
+  has rows_length : public int;
+  has columns_length : public int;
+  has values : public float[];
 }
