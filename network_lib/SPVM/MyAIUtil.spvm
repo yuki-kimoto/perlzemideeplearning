@@ -2,6 +2,14 @@ package SPVM::MyAIUtil : precompile {
   use SPVM::Math (expf, sqrtf, logf, sinf);
   use SPVM::Util (rand);
 
+  # 学習率とミニバッチ数を考慮してパラメーターを更新
+  sub update_params : void ($params : float[], $param_grads : float[], $learning_rate : float, $mini_batch_size : int) {
+    
+    for (my $param_index = 0; $param_index < @$params; $param_index++) {
+      $params->[$param_index] -= ($learning_rate / $mini_batch_size) * $param_grads->[$param_index];
+    }
+  }
+
   # 配列の中で最大値のインデックスを求める。同じ数の場合は、最初の方を返す
   sub max_index : int ($nums : float[]) {
     
@@ -321,8 +329,10 @@ package SPVM::MyAIUtil : precompile {
   }
 }
 
-package SPVM::MyAIUtil::FloatMatrix : public {
-  has rows_length : public int;
-  has columns_length : public int;
-  has values : public float[];
+package SPVM::MyAIUtil::FloatMatrix {
+  allow SPVM::MyAIUtil;
+
+  has rows_length : public rw int;
+  has columns_length : public rw int;
+  has values : public rw float[];
 }
