@@ -1,6 +1,7 @@
 package SPVM::MyAIUtil : precompile {
   use SPVM::Math (expf, sqrtf, logf, sinf);
-  use SPVM::Util (rand);
+  use SPVM::Math (log, sin, sqrt);
+  use SPVM::Util (crand);
 
   # 学習率とミニバッチ数を考慮してパラメーターを更新
   sub update_params : void ($params : float[], $param_grads : float[], $learning_rate : float, $mini_batch_size : int) {
@@ -84,7 +85,7 @@ package SPVM::MyAIUtil : precompile {
 
   # Xivierの初期値を取得
   sub xivier_init_value : float ($inputs_length : int) {
-    
+      
     return randn(0, 1 / sqrtf($inputs_length));
   }
 
@@ -178,7 +179,7 @@ package SPVM::MyAIUtil : precompile {
   # クロスエントロピーコスト
   sub cross_entropy_cost : float ($vec_a : float[], $vec_y : float[]) {
     
-    my $cross_entropy_cost = 0;
+    my $cross_entropy_cost = 0f;
     for (my $i = 0; $i < @$vec_a; $i++) {
       my $tmp = -$vec_y->[$i] * logf($vec_a->[$i]) - (1 - $vec_y->[$i]) * logf(1 - $vec_a->[$i]);
       $cross_entropy_cost += $tmp;
@@ -201,10 +202,12 @@ package SPVM::MyAIUtil : precompile {
   # 正規分布に従う乱数を求める関数
   # $m は平均, $sigma は標準偏差、
   sub randn : float ($m : float, $sigma : float) {
-    my $r1 = rand();
-    my $r2 = rand();
-    while ($r1 == 0) { $r1 = rand(); }
-    return ($sigma * sqrtf(-2 * logf($r1)) * sinf(2f * 3.14159265359f * $r2)) + $m;
+    my $r1 = ((double)crand() + 1) / ((double)SPVM::Util->RAND_MAX + 2);
+    my $r2 = ((double)crand() + 1) / ((double)SPVM::Util->RAND_MAX + 2);
+
+    my $randn = ($sigma * sqrt(-2 * log($r1)) * sin(2 * 3.14159265359 * $r2)) + $m;
+
+    return (float)$randn;
   }
 
   # 配列を0で初期化して作成

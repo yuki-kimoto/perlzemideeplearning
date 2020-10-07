@@ -31,12 +31,12 @@ for (my $i = 0; $i < @$neurons_count_in_layers - 1; $i++) {
   
   # バイアスを0で初期化
   my $biases = SPVM::MyAIUtil->array_new_zero($outputs_length);
-  
+
   # Xivierの初期値で重みを初期化。重みは列優先行列
   my $weights_mat = SPVM::MyAIUtil->mat_new_zero($outputs_length, $inputs_length);
   my $weights_length = $weights_mat->rows_length * $weights_mat->columns_length;
   $weights_mat->set_values(SPVM::MyAIUtil->array_xivier_init_value($inputs_length, $weights_length));
-
+  
   # 変換関数の情報を設定
   $m_to_n_func_infos->[$i] = {
     inputs_length => $inputs_length,
@@ -233,6 +233,7 @@ sub backprop {
   my $softmax_outputs = SPVM::MyAIUtil->softmax($last_activate_outputs);
   
   # 誤差
+  
   my $cost = SPVM::MyAIUtil->cross_entropy_cost($softmax_outputs, $desired_outputs);
   print "Cost: " . sprintf("%.3f", $cost) . "\n";
   
@@ -378,4 +379,21 @@ sub load_mnist_train_label_file {
   $label_info->{label_numbers} = $label_numbers;
   
   return $label_info;
+}
+
+sub dump_array {
+  my ($nums) = @_;
+  
+  my $dump_str = join(' ', @{$nums->to_elems});
+  
+  print STDERR "$dump_str\n";
+}
+
+sub dump_mat {
+  my ($mat) = @_;
+  
+  my $values_str = join(' ', @{$mat->values->to_elems});
+  my $dump_str = sprintf("rows_legnth: %d, columns_length: %d, values : %s", $mat->rows_length, $mat->columns_length, $values_str);
+  
+  print STDERR "$dump_str\n";
 }
