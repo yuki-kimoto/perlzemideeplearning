@@ -1,6 +1,97 @@
 use strict;
 use warnings;
 
+# 正規分布に従う乱数を求める関数
+# $m は平均, $sigma は標準偏差、
+sub randn {
+  my ($m, $sigma) = @_;
+  my ($r1, $r2) = (rand(), rand());
+  while ($r1 == 0) { $r1 = rand(); }
+  return ($sigma * sqrt(-2 * log($r1)) * sin(2 * 3.14159265359 * $r2)) + $m;
+}
+
+# Heの初期値を作成
+sub create_he_init_value {
+  my ($inputs_length) = @_;
+  
+  return randn(0, sqrt(2 / $inputs_length));
+}
+
+# Heの初期値で配列を作成する
+sub array_create_he_init_value {
+  my ($array_length, $inputs_length) = @_;
+  
+  my $nums_out = [];
+  for (my $i = 0; $i < $array_length; $i++) {
+    $nums_out->[$i] = create_he_init_value($inputs_length);
+  }
+  
+  return $nums_out;
+}
+
+# 入力数を728として、出力数を30とすると、行列が持つ配列の長さは「728 * 30」
+my $inputs_length = 728;
+my $outputs_length = 30;
+my $weights_mat = {
+  rows_length => $outputs_length,
+  columns_length => $inputs_length,
+};
+my $weights_values_length = $inputs_length * $outputs_length;
+$weights_mat->{values} = array_create_he_init_value($weights_values_length, $inputs_length);
+
+use Data::Dumper;
+print Dumper $weights_mat;
+
+
+__END__
+
+use strict;
+use warnings;
+
+# 正規分布に従う乱数を求める関数
+# $m は平均, $sigma は標準偏差、
+sub randn {
+  my ($m, $sigma) = @_;
+  my ($r1, $r2) = (rand(), rand());
+  while ($r1 == 0) { $r1 = rand(); }
+  return ($sigma * sqrt(-2 * log($r1)) * sin(2 * 3.14159265359 * $r2)) + $m;
+}
+
+# Xivierの初期値を作成
+sub create_xavier_init_value {
+  my ($inputs_length) = @_;
+  
+  return randn(0, sqrt(1 / $inputs_length));
+}
+
+# Xivierの初期値で配列を作成する
+sub array_create_xavier_init_value {
+  my ($array_length, $inputs_length) = @_;
+  
+  my $nums_out = [];
+  for (my $i = 0; $i < $array_length; $i++) {
+    $nums_out->[$i] = create_xavier_init_value($inputs_length);
+  }
+  
+  return $nums_out;
+}
+
+# 入力数を728として、出力数を30とすると、行列が持つ配列の長さは「728 * 30」
+my $inputs_length = 728;
+my $outputs_length = 30;
+my $weights_mat = {
+  rows_length => $outputs_length,
+  columns_length => $inputs_length,
+};
+my $weights_values_length = $inputs_length * $outputs_length;
+$weights_mat->{values} = array_create_xavier_init_value($weights_values_length, $inputs_length);
+
+use Data::Dumper;
+print Dumper $weights_mat;
+
+
+__END__
+
 sub softmax_cross_entropy_cost_derivative {
   my ($softmax_outputs, $desired_outputs) = @_;
   
