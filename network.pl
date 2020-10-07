@@ -4,10 +4,10 @@ use FindBin;
 use List::Util 'shuffle';
 
 # 学習率
-my $learning_rate = 0.5;
+my $learning_rate = 3;
 
 # エポック数 - 訓練セットの実行回数
-my $epoch_count = 400;
+my $epoch_count = 30;
 
 # ミニバッチサイズ
 my $mini_batch_size = 10;
@@ -127,28 +127,44 @@ for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
         array_add_inplace($m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{biase_grad_totals}, $biase_grads->[$m_to_n_func_index]);
 
         # ミニバッチにおける各変換関数の重みの傾きを加算
+        warn "Index:$m_to_n_func_index\n";
+        warn "Weights: @{$weight_grads_mat->[$m_to_n_func_index]{values}}";
         array_add_inplace($m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{weight_grad_totals_mat}{values}, $weight_grads_mat->[$m_to_n_func_index]{values});
       }
     }
 
     # 各変換関数のバイアスと重みをミニバッチの傾きの合計を使って更新
     for (my $m_to_n_func_index = 0; $m_to_n_func_index < @$m_to_n_func_infos; $m_to_n_func_index++) {
+      
+      # warn "CCCCCCCCC $m_to_n_func_index";
+      
       # 各変換関数のバイアスを更新(学習率を考慮し、ミニバッチ数で割る)
-      update_params($m_to_n_func_infos->[$m_to_n_func_index]{biases},$m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{biase_grad_totals}, $learning_rate, $mini_batch_size);
+      update_params_biases($m_to_n_func_infos->[$m_to_n_func_index]{biases}, $m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{biase_grad_totals}, $learning_rate, $mini_batch_size);
       
       # 各変換関数の重みを更新(学習率を考慮し、傾きの合計をミニバッチ数で、ミニバッチ数で割る)
-      update_params($m_to_n_func_infos->[$m_to_n_func_index]{weights_mat}{values}, $m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{weight_grad_totals_mat}{values}, $learning_rate, $mini_batch_size);
-      # warn "Weights: @{$m_to_n_func_infos->[$m_to_n_func_index]{weights_mat}{values}}";
+      update_params_weights($m_to_n_func_infos->[$m_to_n_func_index]{weights_mat}{values}, $m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{weight_grad_totals_mat}{values}, $learning_rate, $mini_batch_size);
     }
   }
 }
 
 # 学習率とミニバッチ数を考慮してパラメーターを更新
-sub update_params {
+sub update_params_biases {
   my ($params, $param_grads, $learning_rate, $mini_batch_size) = @_;
   
   for (my $param_index = 0; $param_index < @$params; $param_index++) {
-    $params->[$param_index] -= ($learning_rate / $mini_batch_size) * $param_grads->[$param_index];
+    my $update_diff = ($learning_rate / $mini_batch_size) * $param_grads->[$param_index];
+    $params->[$param_index] -= $update_diff;
+  }
+}
+
+# 学習率とミニバッチ数を考慮してパラメーターを更新
+sub update_params_weights {
+  my ($params, $param_grads, $learning_rate, $mini_batch_size) = @_;
+  
+  for (my $param_index = 0; $param_index < @$params; $param_index++) {
+    my $update_diff = ($learning_rate / $mini_batch_size) * $param_grads->[$param_index];
+    # warn "Weights: $update_diff";
+    $params->[$param_index] -= $update_diff;
   }
 }
 
@@ -302,8 +318,9 @@ sub backprop {
   $biase_grads_in_m_to_n_funcs->[@$biase_grads_in_m_to_n_funcs - 1] = $last_biase_grads;
   $weight_grads_mat_in_m_to_n_funcs->[@$biase_grads_in_m_to_n_funcs - 1] = $last_weight_grads_mat;
 
-  warn "Last1 Biase Grads: @{$last_biase_grads}";
+  # warn "Last1 Biase Grads: @{$last_biase_grads}";
 
+  my $delta_biase_grads = $last_biase_grads;
   
   # 最後の重みとバイアスの変換より一つ前から始める
   for (my $m_to_n_func_index = @$m_to_n_func_infos - 2; $m_to_n_func_index >= 0; $m_to_n_func_index--) {
@@ -312,19 +329,20 @@ sub backprop {
 
     # 損失関数の微小変化 / この層のバイアスの微小変化(バックプロパゲーションで求める)
     # 次の層の重みの傾きの転置行列とバイアスの傾きの転置行列をかけて、それぞれの要素に、活性化関数の導関数をかける
-    my $forword_biase_grads = $biase_grads_in_m_to_n_funcs->[$m_to_n_func_index + 1];
     my $forword_weight_grads_mat = $weight_grads_mat_in_m_to_n_funcs->[$m_to_n_func_index + 1];
     my $forword_weight_grads_mat_transpose = mat_transpose($forword_weight_grads_mat);
-    my $forword_biase_grads_mat = mat_new($forword_biase_grads, scalar @$forword_biase_grads, 1);
-    my $biase_grads_mat_tmp = mat_mul($forword_weight_grads_mat_transpose, $forword_biase_grads_mat);
+    my $delta_biase_grads_mat = mat_new($delta_biase_grads, scalar @$delta_biase_grads, 1);
+    my $biase_grads_mat_tmp = mat_mul($forword_weight_grads_mat_transpose, $delta_biase_grads_mat);
     my $biase_grads_tmp = $biase_grads_mat_tmp->{values};
     my $grads_outputs_to_array_sigmoid = array_sigmoid_derivative($outputs);
-    my $biase_grads = array_mul($biase_grads_tmp, $grads_outputs_to_array_sigmoid);
+    $delta_biase_grads = array_mul($biase_grads_tmp, $grads_outputs_to_array_sigmoid);
 
-    warn "Last2 Biase Grads: @{$biase_grads}";
+    # warn "Last2 Biase Grads: @{$delta_biase_grads}";
+
+    $biase_grads_in_m_to_n_funcs->[$m_to_n_func_index] = $delta_biase_grads;
     
     # 損失関数の微小変化 / この層の重みの微小変化(バックプロパゲーションで求める)
-    my $biase_grads_mat = mat_new($biase_grads, scalar @$biase_grads, 1);
+    my $biase_grads_mat = mat_new($delta_biase_grads, scalar @$delta_biase_grads, 1);
     my $inputs = $inputs_in_m_to_n_funcs->[$m_to_n_func_index];
     my $inputs_mat_transpose = mat_new($inputs, 1, scalar @$inputs);
     my $weights_grads_mat = mat_mul($biase_grads_mat, $inputs_mat_transpose);

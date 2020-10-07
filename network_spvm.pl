@@ -7,10 +7,10 @@ use List::Util 'shuffle';
 use SPVM 'SPVM::MyAIUtil';
 
 # 学習率
-my $learning_rate = 0.5;
+my $learning_rate = 3;
 
 # エポック数 - 訓練セットの実行回数
-my $epoch_count = 400;
+my $epoch_count = 30;
 
 # ミニバッチサイズ
 my $mini_batch_size = 10;
