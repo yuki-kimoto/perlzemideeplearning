@@ -32,7 +32,7 @@ for (my $i = 0; $i < @$neurons_count_in_layers - 1; $i++) {
   # Xivierの初期値で重みを初期化。重みは列優先行列
   my $weights_mat = mat_new_zero($outputs_length, $inputs_length);
   my $weights_length = $weights_mat->{rows_length} * $weights_mat->{columns_length};
-  $weights_mat->{values} = array_xivier_init_value($inputs_length, $weights_length);
+  $weights_mat->{values} = array_he_init_value($inputs_length, $weights_length);
 
   # 変換関数の情報を設定
   $m_to_n_func_infos->[$i] = {
@@ -389,7 +389,7 @@ sub array_mul {
 sub xivier_init_value {
   my ($inputs_length) = @_;
   
-  return randn(0, 1 / sqrt($inputs_length));
+  return randn(0, sqrt(1 / $inputs_length));
 }
 
 # 配列の各要素にXivierの初期値を取得を適用する
@@ -399,6 +399,25 @@ sub array_xivier_init_value {
   my $nums_out = [];
   for (my $i = 0; $i < $length; $i++) {
     $nums_out->[$i] = xivier_init_value($inputs_length);
+  }
+  
+  return $nums_out;
+}
+
+# Heの初期値を取得
+sub he_init_value {
+  my ($inputs_length) = @_;
+  
+  return randn(0, sqrt(2 / $inputs_length));
+}
+
+# 配列の各要素にHeの初期値を取得を適用する
+sub array_he_init_value {
+  my ($inputs_length, $length) = @_;
+  
+  my $nums_out = [];
+  for (my $i = 0; $i < $length; $i++) {
+    $nums_out->[$i] = he_init_value($inputs_length);
   }
   
   return $nums_out;

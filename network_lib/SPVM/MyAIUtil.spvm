@@ -86,7 +86,7 @@ package SPVM::MyAIUtil : precompile {
   # Xivierの初期値を取得
   sub xivier_init_value : float ($inputs_length : int) {
       
-    return randn(0, 1 / sqrtf($inputs_length));
+    return randn(0, sqrtf(1 / $inputs_length));
   }
 
   # 配列の各要素にXivierの初期値を取得を適用する
