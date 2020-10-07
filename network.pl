@@ -122,6 +122,7 @@ for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
       for (my $m_to_n_func_index = 0; $m_to_n_func_index < @$m_to_n_func_mini_batch_infos; $m_to_n_func_index++) {
         my $m_to_n_func_info = $m_to_n_func_infos->[$m_to_n_func_index];
         
+        # warn "Biases: @{$m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{biase_grad_totals}}";
         # ミニバッチにおける各変換関数のバイアスの傾きを加算
         array_add_inplace($m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{biase_grad_totals}, $biase_grads->[$m_to_n_func_index]);
 
@@ -137,6 +138,7 @@ for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
       
       # 各変換関数の重みを更新(学習率を考慮し、傾きの合計をミニバッチ数で、ミニバッチ数で割る)
       update_params($m_to_n_func_infos->[$m_to_n_func_index]{weights_mat}{values}, $m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{weight_grad_totals_mat}{values}, $learning_rate, $mini_batch_size);
+      # warn "Weights: @{$m_to_n_func_infos->[$m_to_n_func_index]{weights_mat}{values}}";
     }
   }
 }
@@ -229,7 +231,7 @@ sub backprop {
     # warn "outputs: @$outputs";
     
     # 活性化された出力 - 出力に活性化関数を適用
-    my $activate_outputs = array_relu($outputs);
+    my $activate_outputs = array_sigmoid($outputs);
     
     # warn "activate_outputs: @$activate_outputs\n";
     
@@ -248,16 +250,17 @@ sub backprop {
   my $last_activate_outputs = pop @$inputs_in_m_to_n_funcs;
   
   # softmax関数
-  my $softmax_outputs = softmax($last_activate_outputs);
+  # my $softmax_outputs = softmax($last_activate_outputs);
   
   # warn "softmax_outputs: @$softmax_outputs";
   
   # 誤差
-  my $cost = cross_entropy_cost($softmax_outputs, $desired_outputs);
+  my $cost = cross_entropy_cost($last_activate_outputs, $desired_outputs);
   print "Cost: " . sprintf("%.3f", $cost) . "\n";
   
   # 正解したかどうか
-  my $answer = max_index($softmax_outputs);
+  my $answer = max_index($last_activate_outputs);
+  # my $answer = max_index($softmax_outputs);
   my $desired_answer = max_index($desired_outputs);
   $total_count++;
   if ($answer == $desired_answer) {
@@ -269,12 +272,13 @@ sub backprop {
   print "Match Rate: " . sprintf("%.02f", 100 * $match_rate) . "%\n";
   
   # 活性化された出力の微小変化 / 最後の出力の微小変化 
-  my $grad_last_outputs_to_activate_func = array_relu_derivative($last_outputs);
+  my $grad_last_outputs_to_activate_func = array_sigmoid_derivative($last_outputs);
   
   # warn "grad_last_outputs_to_activate_func: @$grad_last_outputs_to_activate_func";
   
   # 損失関数の微小変化 / 最後に活性化された出力の微小変化
-  my $grad_last_activate_outputs_to_softmax_cost_func = softmax_cross_entropy_cost_derivative($last_activate_outputs, $desired_outputs);
+  # my $grad_last_activate_outputs_to_softmax_cost_func = softmax_cross_entropy_cost_derivative($last_activate_outputs, $desired_outputs);
+  my $grad_last_activate_outputs_to_softmax_cost_func = cross_entropy_cost_derivative($last_activate_outputs, $desired_outputs);
 
   # warn "desired_outputs: @$desired_outputs";
   # warn "grad_last_activate_outputs_to_softmax_cost_func: @$grad_last_activate_outputs_to_softmax_cost_func";
@@ -314,8 +318,8 @@ sub backprop {
     my $forword_biase_grads_mat = mat_new($forword_biase_grads, scalar @$forword_biase_grads, 1);
     my $biase_grads_mat_tmp = mat_mul($forword_weight_grads_mat_transpose, $forword_biase_grads_mat);
     my $biase_grads_tmp = $biase_grads_mat_tmp->{values};
-    my $grads_outputs_to_array_relu = array_relu_derivative($outputs);
-    my $biase_grads = array_mul($biase_grads_tmp, $grads_outputs_to_array_relu);
+    my $grads_outputs_to_array_sigmoid = array_sigmoid_derivative($outputs);
+    my $biase_grads = array_mul($biase_grads_tmp, $grads_outputs_to_array_sigmoid);
 
     warn "Last2 Biase Grads: @{$biase_grads}";
     
