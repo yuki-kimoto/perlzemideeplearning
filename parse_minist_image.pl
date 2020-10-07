@@ -45,7 +45,7 @@ $image_info->{columns_count} = $columns_count;
 $image_info->{data} = $image_data;
 
 # 画像情報の出力
-for (my $i = 0; $i < 5; $i++) {
+for (my $i = 0; $i < 40000; $i++) {
 
   # 画像オフセット
   my $offset = $i * $rows_count * $columns_count;

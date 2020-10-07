@@ -281,12 +281,13 @@ sub backprop {
     my $forword_weight_grads_mat = $weight_grads_mat_in_m_to_n_funcs->[$m_to_n_func_index + 1];
     my $forword_weight_grads_mat_transpose = SPVM::MyAIUtil->mat_transpose($forword_weight_grads_mat);
     my $forword_biase_grads_mat = SPVM::MyAIUtil->mat_new($forword_biase_grads, $forword_biase_grads->get_length, 1);
-    my $biase_grads_mat = SPVM::MyAIUtil->mat_mul($forword_weight_grads_mat_transpose, $forword_biase_grads_mat);
-    my $biase_grads = $biase_grads_mat->values;
-    $biase_grads = SPVM::MyAIUtil->array_relu_derivative($biase_grads);
+    my $biase_grads_mat_tmp = SPVM::MyAIUtil->mat_mul($forword_weight_grads_mat_transpose, $forword_biase_grads_mat);
+    my $biase_grads_tmp = $biase_grads_mat_tmp->values;
+    my $grads_outputs_to_array_relu = SPVM::MyAIUtil->array_relu_derivative($outputs);
+    my $biase_grads = SPVM::MyAIUtil->array_mul($biase_grads_tmp, $grads_outputs_to_array_relu);
     
     # 損失関数の微小変化 / この層の重みの微小変化(バックプロパゲーションで求める)
-    $biase_grads_mat = SPVM::MyAIUtil->mat_new($biase_grads, $biase_grads->get_length, 1);
+    my $biase_grads_mat = SPVM::MyAIUtil->mat_new($biase_grads, $biase_grads->get_length, 1);
     my $inputs = $inputs_in_m_to_n_funcs->[$m_to_n_func_index];
     my $inputs_mat_transpose = SPVM::MyAIUtil->mat_new($inputs, 1, $inputs->get_length);
     my $weights_grads_mat = SPVM::MyAIUtil->mat_mul($biase_grads_mat, $inputs_mat_transpose);
