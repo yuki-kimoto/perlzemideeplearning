@@ -6,11 +6,13 @@ MNIST手書きデータは、<a href="http://yann.lecun.com/exdb/mnist/">THE MNI
 
 このディープラーニングのPerlコードは、<a href="https://nnadl-ja.github.io/nnadl_site_ja/index.html">ニューラルネットワークと深層学習</a>のソースコードを参考にしています。
 
-現在このコードは、Perlが遅すぎて、学習が進んでいるのかすら、確認することができません。ですので、デバッグ不能なコードです。
+現在このコードは、1回目の訓練で、正答率が25%程度までは上昇しますが、Perlの数値計算の性能が足りていないので、そこから進めることは、難しそうです。
 
-純粋なPerlコードですので、ディープラーニングのアルゴリズムの概要を知るのには、利用できるでしょう...。
+純粋なPerlコードですので、ディープラーニングのアルゴリズムの概要を知るのには、利用できるでしょう。
 
-SPVMへの部分的なリライトによって、試行錯誤を繰り返して、現実的な速度レベルまで高速化していきます。
+特別なライブラリを使用していませんので、if文とfor文と配列の知識があれば、ソースコードを読むことができます。
+
+C言語トランスパイラであるSPVMへの部分的なリライトによって、試行錯誤を繰り返して、現実的な速度レベルまで高速化していきます。
 
 <pre>
 # network.pl
@@ -21,10 +23,10 @@ use FindBin;
 use List::Util 'shuffle';
 
 # 学習率
-my $learning_rate = 0.5;
+my $learning_rate = 3;
 
 # エポック数 - 訓練セットの実行回数
-my $epoch_count = 400;
+my $epoch_count = 30;
 
 # ミニバッチサイズ
 my $mini_batch_size = 10;
@@ -49,7 +51,7 @@ for (my $i = 0; $i < @$neurons_count_in_layers - 1; $i++) {
   # Xivierの初期値で重みを初期化。重みは列優先行列
   my $weights_mat = mat_new_zero($outputs_length, $inputs_length);
   my $weights_length = $weights_mat->{rows_length} * $weights_mat->{columns_length};
-  $weights_mat->{values} = array_xivier_init_value($inputs_length, $weights_length);
+  $weights_mat->{values} = array_create_he_init_value($weights_length, $inputs_length);
 
   # 変換関数の情報を設定
   $m_to_n_func_infos->[$i] = {
@@ -119,10 +121,10 @@ for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
       my $weights_mat = $m_to_n_func_info->{weights_mat};
       
       # ミニバッチにおける各変換関数のバイアスの傾きの合計を0で初期化して作成
-      array_init_zero($m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{biase_grad_totals});
+      $m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{biase_grad_totals} = array_new_zero(scalar @{$m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{biase_grad_totals}});
 
       # ミニバッチにおける各変換関数の重みの傾きの合計を0で初期化して作成
-      array_init_zero($m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{weight_grad_totals_mat}{values});
+      $m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{weight_grad_totals_mat}{values} = array_new_zero(scalar @{$m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{weight_grad_totals_mat}{values}});
     }
     
     for my $training_data_index (@indexed_for_mini_batch) {
@@ -149,23 +151,37 @@ for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
 
     # 各変換関数のバイアスと重みをミニバッチの傾きの合計を使って更新
     for (my $m_to_n_func_index = 0; $m_to_n_func_index < @$m_to_n_func_infos; $m_to_n_func_index++) {
+      
       # 各変換関数のバイアスを更新(学習率を考慮し、ミニバッチ数で割る)
-      update_params($m_to_n_func_infos->[$m_to_n_func_index]{biases},$m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{biase_grad_totals}, $learning_rate, $mini_batch_size);
+      update_params_biases($m_to_n_func_infos->[$m_to_n_func_index]{biases}, $m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{biase_grad_totals}, $learning_rate, $mini_batch_size);
       
       # 各変換関数の重みを更新(学習率を考慮し、傾きの合計をミニバッチ数で、ミニバッチ数で割る)
-      update_params($m_to_n_func_infos->[$m_to_n_func_index]{weights_mat}{values}, $m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{weight_grad_totals_mat}{values}, $learning_rate, $mini_batch_size);
+      update_params_weights($m_to_n_func_infos->[$m_to_n_func_index]{weights_mat}{values}, $m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{weight_grad_totals_mat}{values}, $learning_rate, $mini_batch_size);
     }
   }
 }
 
 # 学習率とミニバッチ数を考慮してパラメーターを更新
-sub update_params {
+sub update_params_biases {
   my ($params, $param_grads, $learning_rate, $mini_batch_size) = @_;
   
   for (my $param_index = 0; $param_index < @$params; $param_index++) {
-    $params->[$param_index] -= ($learning_rate / $mini_batch_size) * $param_grads->[$param_index];
+    my $update_diff = ($learning_rate / $mini_batch_size) * $param_grads->[$param_index];
+    $params->[$param_index] -= $update_diff;
   }
 }
+
+# 学習率とミニバッチ数を考慮してパラメーターを更新
+sub update_params_weights {
+  my ($params, $param_grads, $learning_rate, $mini_batch_size) = @_;
+  
+  for (my $param_index = 0; $param_index < @$params; $param_index++) {
+    my $update_diff = ($learning_rate / $mini_batch_size) * $param_grads->[$param_index];
+    $params->[$param_index] -= $update_diff;
+  }
+}
+
+my $count = 0;
 
 # バックプロパゲーション
 sub backprop {
@@ -182,6 +198,7 @@ sub backprop {
   
   # 期待される出力を確率分布化する
   my $label_number = $mnist_train_label_info->{label_numbers}[$training_data_index];
+  
   my $desired_outputs = probabilize_desired_outputs($label_number);
   
   # 各変換関数のバイアスの傾き
@@ -238,7 +255,7 @@ sub backprop {
     my $outputs = array_add($mul_weights_inputs, $biases);
     
     # 活性化された出力 - 出力に活性化関数を適用
-    my $activate_outputs = array_relu($outputs);
+    my $activate_outputs = array_sigmoid($outputs);
     
     # バックプロパゲーションのために出力を保存
     push @$outputs_in_m_to_n_funcs, $outputs;
@@ -246,6 +263,7 @@ sub backprop {
     # バックプロパゲーションのために次の入力を保存
     push @$inputs_in_m_to_n_funcs, $activate_outputs;
   }
+
   
   # 最後の出力
   my $last_outputs = $outputs_in_m_to_n_funcs->[-1];
@@ -254,14 +272,15 @@ sub backprop {
   my $last_activate_outputs = pop @$inputs_in_m_to_n_funcs;
   
   # softmax関数
-  my $softmax_outputs = softmax($last_activate_outputs);
+  # my $softmax_outputs = softmax($last_activate_outputs);
   
   # 誤差
-  my $cost = cross_entropy_cost($softmax_outputs, $desired_outputs);
+  my $cost = cross_entropy_cost($last_activate_outputs, $desired_outputs);
   print "Cost: " . sprintf("%.3f", $cost) . "\n";
   
   # 正解したかどうか
-  my $answer = max_index($softmax_outputs);
+  my $answer = max_index($last_activate_outputs);
+  # my $answer = max_index($softmax_outputs);
   my $desired_answer = max_index($desired_outputs);
   $total_count++;
   if ($answer == $desired_answer) {
@@ -273,14 +292,15 @@ sub backprop {
   print "Match Rate: " . sprintf("%.02f", 100 * $match_rate) . "%\n";
   
   # 活性化された出力の微小変化 / 最後の出力の微小変化 
-  my $grad_last_outputs_to_activate_func = array_relu_derivative($last_outputs);
+  my $grad_last_outputs_to_activate_func = array_sigmoid_derivative($last_outputs);
   
   # 損失関数の微小変化 / 最後に活性化された出力の微小変化
-  my $grad_last_activate_outputs_to_softmax_cost_func = softmax_cross_entropy_cost_derivative($last_activate_outputs, $desired_outputs);
-  
+  # my $grad_last_activate_outputs_to_softmax_cost_func = softmax_cross_entropy_cost_derivative($last_activate_outputs, $desired_outputs);
+  my $grad_last_activate_outputs_to_softmax_cost_func = cross_entropy_cost_derivative($last_activate_outputs, $desired_outputs);
+
   # 損失関数の微小変化 / 最後の出力の微小変化 (合成微分)
   my $grad_last_outputs_to_cost_func = array_mul($grad_last_outputs_to_activate_func, $grad_last_activate_outputs_to_softmax_cost_func);
-  
+
   # 損失関数の微小変化 / 最終の層のバイアスの微小変化
   my $last_biase_grads = $grad_last_outputs_to_cost_func;
   
@@ -289,7 +309,7 @@ sub backprop {
   my $last_inputs = $inputs_in_m_to_n_funcs->[@$inputs_in_m_to_n_funcs - 1];
   my $last_inputs_transpose_mat = mat_new($last_inputs, 1, scalar @$last_inputs);
   my $last_weight_grads_mat = mat_mul($last_biase_grads_mat, $last_inputs_transpose_mat);
-    
+  
   $biase_grads_in_m_to_n_funcs->[@$biase_grads_in_m_to_n_funcs - 1] = $last_biase_grads;
   $weight_grads_mat_in_m_to_n_funcs->[@$biase_grads_in_m_to_n_funcs - 1] = $last_weight_grads_mat;
 
@@ -299,17 +319,20 @@ sub backprop {
     my $outputs = $outputs_in_m_to_n_funcs->[$m_to_n_func_index];
 
     # 損失関数の微小変化 / この層のバイアスの微小変化(バックプロパゲーションで求める)
-    # 次の層の重みの傾きの転置行列とバイアスの傾きの転置行列をかけて、それぞれの要素に、活性化関数の導関数をかける
+    # 次の層の重みの転置行列とバイアスの傾きをかけて、それぞれの要素に、活性化関数の導関数をかける
+    my $forword_weights_mat = $m_to_n_func_infos->[$m_to_n_func_index + 1]{weights_mat};
+    my $forword_weights_mat_transpose = mat_transpose($forword_weights_mat);
     my $forword_biase_grads = $biase_grads_in_m_to_n_funcs->[$m_to_n_func_index + 1];
-    my $forword_weight_grads_mat = $weight_grads_mat_in_m_to_n_funcs->[$m_to_n_func_index + 1];
-    my $forword_weight_grads_mat_transpose = mat_transpose($forword_weight_grads_mat);
     my $forword_biase_grads_mat = mat_new($forword_biase_grads, scalar @$forword_biase_grads, 1);
-    my $biase_grads_mat = mat_mul($forword_weight_grads_mat_transpose, $forword_biase_grads_mat);
-    my $biase_grads = $biase_grads_mat->{values};
-    $biase_grads = array_relu_derivative($biase_grads);
+    my $mul_forword_weights_transpose_mat_forword_biase_grads_mat = mat_mul($forword_weights_mat_transpose, $forword_biase_grads_mat);
+    my $mul_forword_weights_transpose_mat_forword_biase_grads_mat_values = $mul_forword_weights_transpose_mat_forword_biase_grads_mat->{values};
+    my $grads_outputs_to_array_sigmoid = array_sigmoid_derivative($outputs);
+    my $biase_grads = array_mul($mul_forword_weights_transpose_mat_forword_biase_grads_mat_values, $grads_outputs_to_array_sigmoid);
+
+    $biase_grads_in_m_to_n_funcs->[$m_to_n_func_index] = $biase_grads;
     
     # 損失関数の微小変化 / この層の重みの微小変化(バックプロパゲーションで求める)
-    $biase_grads_mat = mat_new($biase_grads, scalar @$biase_grads, 1);
+    my $biase_grads_mat = mat_new($biase_grads, scalar @$biase_grads, 1);
     my $inputs = $inputs_in_m_to_n_funcs->[$m_to_n_func_index];
     my $inputs_mat_transpose = mat_new($inputs, 1, scalar @$inputs);
     my $weights_grads_mat = mat_mul($biase_grads_mat, $inputs_mat_transpose);
@@ -320,7 +343,6 @@ sub backprop {
   my $m_to_n_func_grad_infos = {};
   $m_to_n_func_grad_infos->{biases} = $biase_grads_in_m_to_n_funcs;
   $m_to_n_func_grad_infos->{weights_mat} = $weight_grads_mat_in_m_to_n_funcs;
-  
   
   return $m_to_n_func_grad_infos;
 }
@@ -402,20 +424,48 @@ sub array_mul {
   return $nums_out;
 }
 
-# Xivierの初期値を取得
-sub xivier_init_value {
+# 正規分布に従う乱数を求める関数
+# $m は平均, $sigma は標準偏差、
+sub randn {
+  my ($m, $sigma) = @_;
+  my ($r1, $r2) = (rand(), rand());
+  while ($r1 == 0) { $r1 = rand(); }
+  return ($sigma * sqrt(-2 * log($r1)) * sin(2 * 3.14159265359 * $r2)) + $m;
+}
+
+# Xivierの初期値を作成
+sub create_xavier_init_value {
   my ($inputs_length) = @_;
   
-  return randn(0, 1 / sqrt($inputs_length));
+  return randn(0, sqrt(1 / $inputs_length));
 }
 
 # 配列の各要素にXivierの初期値を取得を適用する
-sub array_xivier_init_value {
-  my ($inputs_length, $length) = @_;
+sub array_create_xavier_init_value {
+  my ($array_length, $inputs_length) = @_;
   
   my $nums_out = [];
-  for (my $i = 0; $i < $length; $i++) {
-    $nums_out->[$i] = xivier_init_value($inputs_length);
+  for (my $i = 0; $i < $array_length; $i++) {
+    $nums_out->[$i] = create_xavier_init_value($inputs_length);
+  }
+  
+  return $nums_out;
+}
+
+# Heの初期値を取得
+sub create_he_init_value {
+  my ($inputs_length) = @_;
+  
+  return randn(0, sqrt(2 / $inputs_length));
+}
+
+# 配列の各要素にHeの初期値を取得を適用する
+sub array_create_he_init_value {
+  my ($array_length, $inputs_length) = @_;
+  
+  my $nums_out = [];
+  for (my $i = 0; $i < $array_length; $i++) {
+    $nums_out->[$i] = create_he_init_value($inputs_length);
   }
   
   return $nums_out;
@@ -530,15 +580,6 @@ sub cross_entropy_cost_derivative {
   return $vec_out;
 }
 
-# 正規分布に従う乱数を求める関数
-# $m は平均, $sigma は標準偏差、
-sub randn {
-  my ($m, $sigma) = @_;
-  my ($r1, $r2) = (rand(), rand());
-  while ($r1 == 0) { $r1 = rand(); }
-  return ($sigma * sqrt(-2 * log($r1)) * sin(2 * 3.14159265359 * $r2)) + $m;
-}
-
 # MNIST画像情報を読み込む
 sub load_mnist_train_image_file {
   my ($mnist_image_file) = @_;
@@ -626,15 +667,6 @@ sub array_new_zero {
   my $nums = [(0) x $length];
   
   return $nums;
-}
-
-# 既存配列を0で初期化
-sub array_init_zero {
-  my ($nums) = @_;
-  
-  for (my $i = 0; $i < @$nums; $i++) {
-    $nums->[$i] = 0;
-  }
 }
 
 # 行列を0で初期化
