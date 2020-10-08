@@ -7,7 +7,8 @@ package SPVM::MyAIUtil : precompile {
   sub update_params : void ($params : float[], $param_grads : float[], $learning_rate : float, $mini_batch_size : int) {
     
     for (my $param_index = 0; $param_index < @$params; $param_index++) {
-      $params->[$param_index] -= ($learning_rate / $mini_batch_size) * $param_grads->[$param_index];
+      my $update_value = ($learning_rate / $mini_batch_size) * $param_grads->[$param_index];
+      $params->[$param_index] -= $update_value;
     }
   }
 
@@ -19,6 +20,7 @@ package SPVM::MyAIUtil : precompile {
     for (my $i = 0; $i < @$nums; $i++) {
       if ($nums->[$i] > $max) {
         $max_index = $i;
+        $max = $nums->[$i];
       }
     }
     
@@ -84,17 +86,36 @@ package SPVM::MyAIUtil : precompile {
   }
 
   # Xivierの初期値を取得
-  sub xivier_init_value : float ($inputs_length : int) {
+  sub create_xavier_init_value : float ($inputs_length : int) {
       
-    return randn(0, sqrtf(1 / $inputs_length));
+    return randn(0, sqrtf((float)1 / $inputs_length));
   }
 
   # 配列の各要素にXivierの初期値を取得を適用する
-  sub array_xivier_init_value : float[] ($inputs_length : int, $length : int) {
+  sub array_create_xavier_init_value : float[] ($array_length : int, $inputs_length : int) {
     
-    my $nums_out = new float[$length];
-    for (my $i = 0; $i < $length; $i++) {
-      $nums_out->[$i] = xivier_init_value($inputs_length);
+    my $nums_out = new float[$array_length];
+    for (my $i = 0; $i < $array_length; $i++) {
+      $nums_out->[$i] = create_xavier_init_value($inputs_length);
+    }
+    
+    return $nums_out;
+  }
+
+  # Heの初期値を取得
+  sub create_he_init_value : float ($inputs_length : int) {
+    
+    my $he_init_value = randn(0, sqrtf((float)2 / $inputs_length));
+    
+    return $he_init_value;
+  }
+
+  # 配列の各要素にHeの初期値を取得を適用する
+  sub array_create_he_init_value : float[] ($array_length : int, $inputs_length : int) {
+    
+    my $nums_out = new float[$array_length];
+    for (my $i = 0; $i < $array_length; $i++) {
+      $nums_out->[$i] = create_he_init_value($inputs_length);
     }
     
     return $nums_out;

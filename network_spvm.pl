@@ -35,7 +35,7 @@ for (my $i = 0; $i < @$neurons_count_in_layers - 1; $i++) {
   # Xivierの初期値で重みを初期化。重みは列優先行列
   my $weights_mat = SPVM::MyAIUtil->mat_new_zero($outputs_length, $inputs_length);
   my $weights_length = $weights_mat->rows_length * $weights_mat->columns_length;
-  $weights_mat->set_values(SPVM::MyAIUtil->array_xivier_init_value($inputs_length, $weights_length));
+  $weights_mat->set_values(SPVM::MyAIUtil->array_create_he_init_value($weights_length, $inputs_length));
   
   # 変換関数の情報を設定
   $m_to_n_func_infos->[$i] = {
@@ -96,7 +96,7 @@ for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
   # ミニバッチサイズ単位で学習
   my $backprop_count = 0;
   
-  warn "Epoch";
+  warn "Epoch $epoch_index";
   
   while (my @indexed_for_mini_batch = splice(@training_data_indexes_shuffle, 0, $mini_batch_size)) {
     
@@ -108,7 +108,7 @@ for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
       
       # ミニバッチにおける各変換関数のバイアスの傾きの合計を0で初期化して作成
       $m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{biase_grad_totals} = SPVM::MyAIUtil->array_new_zero($m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{biase_grad_totals}->get_length);
-
+      
       # ミニバッチにおける各変換関数の重みの傾きの合計を0で初期化して作成
       $m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{weight_grad_totals_mat}->set_values(SPVM::MyAIUtil->array_new_zero($m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{weight_grad_totals_mat}->values->get_length));
     }
@@ -137,8 +137,9 @@ for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
 
     # 各変換関数のバイアスと重みをミニバッチの傾きの合計を使って更新
     for (my $m_to_n_func_index = 0; $m_to_n_func_index < @$m_to_n_func_infos; $m_to_n_func_index++) {
+      
       # 各変換関数のバイアスを更新(学習率を考慮し、ミニバッチ数で割る)
-      SPVM::MyAIUtil->update_params($m_to_n_func_infos->[$m_to_n_func_index]{biases},$m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{biase_grad_totals}, $learning_rate, $mini_batch_size);
+      SPVM::MyAIUtil->update_params($m_to_n_func_infos->[$m_to_n_func_index]{biases}, $m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{biase_grad_totals}, $learning_rate, $mini_batch_size);
       
       # 各変換関数の重みを更新(学習率を考慮し、傾きの合計をミニバッチ数で、ミニバッチ数で割る)
       SPVM::MyAIUtil->update_params($m_to_n_func_infos->[$m_to_n_func_index]{weights_mat}->values, $m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{weight_grad_totals_mat}->values, $learning_rate, $mini_batch_size);
@@ -197,7 +198,7 @@ sub backprop {
     
     # 重み行列
     my $weights_mat = $m_to_n_func_infos->[$m_to_n_func_index]{weights_mat};
-    
+
     # 入力行列
     my $cur_inputs_rows_length = $outputs_length;
     my $cur_inputs_columns_length = 1;
@@ -206,16 +207,17 @@ sub backprop {
     # 重みと入力の行列積
     my $mul_weights_inputs_mat = SPVM::MyAIUtil->mat_mul($weights_mat, $cur_inputs_mat);
     my $mul_weights_inputs = $mul_weights_inputs_mat->values;
-    
+
     # バイアス
     my $biases = $m_to_n_func_infos->[$m_to_n_func_index]{biases};
     
     # 出力 - 重みと入力の行列積とバイアスの和
     my $outputs = SPVM::MyAIUtil->array_add($mul_weights_inputs, $biases);
     
-    # 活性化された出力 - 出力に活性化関数を適用
-    my $activate_outputs = SPVM::MyAIUtil->array_relu($outputs);
     
+    # 活性化された出力 - 出力に活性化関数を適用
+    my $activate_outputs = SPVM::MyAIUtil->array_sigmoid($outputs);
+
     # バックプロパゲーションのために出力を保存
     push @$outputs_in_m_to_n_funcs, $outputs;
     
@@ -230,15 +232,17 @@ sub backprop {
   my $last_activate_outputs = pop @$inputs_in_m_to_n_funcs;
   
   # softmax関数
-  my $softmax_outputs = SPVM::MyAIUtil->softmax($last_activate_outputs);
+  # my $softmax_outputs = SPVM::MyAIUtil->softmax($last_activate_outputs);
   
   # 誤差
   
-  my $cost = SPVM::MyAIUtil->cross_entropy_cost($softmax_outputs, $desired_outputs);
+  my $cost = SPVM::MyAIUtil->cross_entropy_cost($last_activate_outputs, $desired_outputs);
+  # my $cost = SPVM::MyAIUtil->softmax_cross_entropy_cost($softmax_outputs, $desired_outputs);
   print "Cost: " . sprintf("%.3f", $cost) . "\n";
   
   # 正解したかどうか
-  my $answer = SPVM::MyAIUtil->max_index($softmax_outputs);
+  my $answer = SPVM::MyAIUtil->max_index($last_activate_outputs);
+  # my $answer = SPVM::MyAIUtil->max_index($softmax_outputs);
   my $desired_answer = SPVM::MyAIUtil->max_index($desired_outputs);
   $total_count++;
   if ($answer == $desired_answer) {
@@ -250,17 +254,19 @@ sub backprop {
   print "Match Rate: " . sprintf("%.02f", 100 * $match_rate) . "%\n";
   
   # 活性化された出力の微小変化 / 最後の出力の微小変化 
-  my $grad_last_outputs_to_activate_func = SPVM::MyAIUtil->array_relu_derivative($last_outputs);
+  my $grad_last_outputs_to_activate_func = SPVM::MyAIUtil->array_sigmoid_derivative($last_outputs);
   
   # 損失関数の微小変化 / 最後に活性化された出力の微小変化
-  my $grad_last_activate_outputs_to_softmax_cost_func = SPVM::MyAIUtil->softmax_cross_entropy_cost_derivative($last_activate_outputs,$desired_outputs);
-  
+  # my $grad_last_activate_outputs_to_cost_func = softmax_cross_entropy_cost_derivative($last_activate_outputs, $desired_outputs);
+  my $grad_last_activate_outputs_to_cost_func = SPVM::MyAIUtil->cross_entropy_cost_derivative($last_activate_outputs, $desired_outputs);
+
   # 損失関数の微小変化 / 最後の出力の微小変化 (合成微分)
-  my $grad_last_outputs_to_cost_func = SPVM::MyAIUtil->array_mul($grad_last_outputs_to_activate_func, $grad_last_activate_outputs_to_softmax_cost_func);
-  
+  my $grad_last_outputs_to_cost_func = SPVM::MyAIUtil->array_mul($grad_last_outputs_to_activate_func, $grad_last_activate_outputs_to_cost_func);
+
   # 損失関数の微小変化 / 最終の層のバイアスの微小変化
   my $last_biase_grads = $grad_last_outputs_to_cost_func;
   
+
   # 損失関数の微小変化 / 最終の層の重みの微小変化
   my $last_biase_grads_mat = SPVM::MyAIUtil->mat_new($last_biase_grads, $last_biase_grads->get_length, 1);
   my $last_inputs = $inputs_in_m_to_n_funcs->[@$inputs_in_m_to_n_funcs - 1];
@@ -270,6 +276,7 @@ sub backprop {
   $biase_grads_in_m_to_n_funcs->[@$biase_grads_in_m_to_n_funcs - 1] = $last_biase_grads;
   $weight_grads_mat_in_m_to_n_funcs->[@$biase_grads_in_m_to_n_funcs - 1] = $last_weight_grads_mat;
 
+        
   # 最後の重みとバイアスの変換より一つ前から始める
   for (my $m_to_n_func_index = @$m_to_n_func_infos - 2; $m_to_n_func_index >= 0; $m_to_n_func_index--) {
     # 活性化された出力の微小変化 / 出力の微小変化
@@ -277,14 +284,16 @@ sub backprop {
 
     # 損失関数の微小変化 / この層のバイアスの微小変化(バックプロパゲーションで求める)
     # 次の層の重みの傾きの転置行列とバイアスの傾きの転置行列をかけて、それぞれの要素に、活性化関数の導関数をかける
+    my $forword_weights_mat = $m_to_n_func_infos->[$m_to_n_func_index + 1]{weights_mat};
+    my $forword_weights_mat_transpose = SPVM::MyAIUtil->mat_transpose($forword_weights_mat);
     my $forword_biase_grads = $biase_grads_in_m_to_n_funcs->[$m_to_n_func_index + 1];
-    my $forword_weight_grads_mat = $weight_grads_mat_in_m_to_n_funcs->[$m_to_n_func_index + 1];
-    my $forword_weight_grads_mat_transpose = SPVM::MyAIUtil->mat_transpose($forword_weight_grads_mat);
     my $forword_biase_grads_mat = SPVM::MyAIUtil->mat_new($forword_biase_grads, $forword_biase_grads->get_length, 1);
-    my $biase_grads_mat_tmp = SPVM::MyAIUtil->mat_mul($forword_weight_grads_mat_transpose, $forword_biase_grads_mat);
-    my $biase_grads_tmp = $biase_grads_mat_tmp->values;
-    my $grads_outputs_to_array_relu = SPVM::MyAIUtil->array_relu_derivative($outputs);
-    my $biase_grads = SPVM::MyAIUtil->array_mul($biase_grads_tmp, $grads_outputs_to_array_relu);
+    my $mul_forword_weights_transpose_mat_forword_biase_grads_mat = SPVM::MyAIUtil->mat_mul($forword_weights_mat_transpose, $forword_biase_grads_mat);
+    my $mul_forword_weights_transpose_mat_forword_biase_grads_mat_values = $mul_forword_weights_transpose_mat_forword_biase_grads_mat->values;
+    my $grads_outputs_to_array_sigmoid = SPVM::MyAIUtil->array_sigmoid_derivative($outputs);
+    my $biase_grads = SPVM::MyAIUtil->array_mul($mul_forword_weights_transpose_mat_forword_biase_grads_mat_values, $grads_outputs_to_array_sigmoid);
+
+    $biase_grads_in_m_to_n_funcs->[$m_to_n_func_index] = $biase_grads;
     
     # 損失関数の微小変化 / この層の重みの微小変化(バックプロパゲーションで求める)
     my $biase_grads_mat = SPVM::MyAIUtil->mat_new($biase_grads, $biase_grads->get_length, 1);

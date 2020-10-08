@@ -327,6 +327,7 @@ sub max_index {
   for (my $i = 0; $i < @$nums; $i++) {
     if ($nums->[$i] > $max) {
       $max_index = $i;
+      $max = $nums->[$i];
     }
   }
   
