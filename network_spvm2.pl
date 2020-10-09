@@ -17,9 +17,10 @@ my $mini_batch_size = 10;
 
 # 各層のニューロンの数
 # 28 * 28 = 728のモノクロ画像を (入力)
-# 30個の中間出力を通って        (中間出力)
+# 30個の中間出力を通って        (中間出力1)
+# 35個の中間出力を通って        (中間出力2)
 # 0～9の10個に分類する          (出力)
-my $neurons_count_in_layers = [728, 30, 10];
+my $neurons_count_in_layers = [728, 30, 35, 10];
 
 # 各層のm個の入力をn個の出力に変換する関数の情報。入力数、出力数、バイアス、重み
 my $m_to_n_func_infos = [];
@@ -95,8 +96,6 @@ for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
   
   # ミニバッチサイズ単位で学習
   my $backprop_count = 0;
-  
-  warn "Epoch $epoch_index";
   
   while (my @indexed_for_mini_batch = splice(@training_data_indexes_shuffle, 0, $mini_batch_size)) {
     
@@ -279,6 +278,7 @@ sub backprop {
         
   # 最後の重みとバイアスの変換より一つ前から始める
   for (my $m_to_n_func_index = @$m_to_n_func_infos - 2; $m_to_n_func_index >= 0; $m_to_n_func_index--) {
+    
     # 活性化された出力の微小変化 / 出力の微小変化
     my $outputs = $outputs_in_m_to_n_funcs->[$m_to_n_func_index];
 
