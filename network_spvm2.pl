@@ -7,7 +7,7 @@ use List::Util 'shuffle';
 use SPVM 'SPVM::MyAIUtil';
 
 # 学習率
-my $learning_rate = 3;
+my $learning_rate = 0.45;
 
 # エポック数 - 訓練セットの実行回数
 my $epoch_count = 30;
@@ -216,7 +216,7 @@ sub backprop {
     
     
     # 活性化された出力 - 出力に活性化関数を適用
-    my $activate_outputs = SPVM::MyAIUtil->array_sigmoid($outputs);
+    my $activate_outputs = SPVM::MyAIUtil->array_relu($outputs);
 
     # バックプロパゲーションのために出力を保存
     push @$outputs_in_m_to_n_funcs, $outputs;
@@ -254,7 +254,7 @@ sub backprop {
   print "Match Rate: " . sprintf("%.02f", 100 * $match_rate) . "%\n";
   
   # 活性化された出力の微小変化 / 最後の出力の微小変化 
-  my $grad_last_outputs_to_activate_func = SPVM::MyAIUtil->array_sigmoid_derivative($last_outputs);
+  my $grad_last_outputs_to_activate_func = SPVM::MyAIUtil->array_relu_derivative($last_outputs);
   
   # 損失関数の微小変化 / 最後に活性化された出力の微小変化
   my $grad_last_activate_outputs_to_cost_func = SPVM::MyAIUtil->softmax_cross_entropy_cost_derivative($last_activate_outputs, $desired_outputs);
@@ -290,8 +290,8 @@ sub backprop {
     my $forword_biase_grads_mat = SPVM::MyAIUtil->mat_new($forword_biase_grads, $forword_biase_grads->get_length, 1);
     my $mul_forword_weights_transpose_mat_forword_biase_grads_mat = SPVM::MyAIUtil->mat_mul($forword_weights_mat_transpose, $forword_biase_grads_mat);
     my $mul_forword_weights_transpose_mat_forword_biase_grads_mat_values = $mul_forword_weights_transpose_mat_forword_biase_grads_mat->values;
-    my $grads_outputs_to_array_sigmoid = SPVM::MyAIUtil->array_sigmoid_derivative($outputs);
-    my $biase_grads = SPVM::MyAIUtil->array_mul($mul_forword_weights_transpose_mat_forword_biase_grads_mat_values, $grads_outputs_to_array_sigmoid);
+    my $grads_outputs_to_array_relu = SPVM::MyAIUtil->array_relu_derivative($outputs);
+    my $biase_grads = SPVM::MyAIUtil->array_mul($mul_forword_weights_transpose_mat_forword_biase_grads_mat_values, $grads_outputs_to_array_relu);
 
     $biase_grads_in_m_to_n_funcs->[$m_to_n_func_index] = $biase_grads;
     
