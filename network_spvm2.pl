@@ -6,6 +6,12 @@ use List::Util 'shuffle';
 
 use SPVM 'SPVM::MyAIUtil';
 
+# 総実行回数
+our $TOTAL_COUNT = 0;
+
+# 正解数
+our $ANSWER_MATCH_COUNT = 0;
+
 # 学習率
 my $learning_rate = 0.45;
 
@@ -79,12 +85,6 @@ for (my $m_to_n_func_index = 0; $m_to_n_func_index < @$m_to_n_func_infos; $m_to_
   my $weight_grad_totals_mat = SPVM::MyAIUtil->mat_new_zero($weights_mat->rows_length, $weights_mat->columns_length);
   $m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{weight_grad_totals_mat} = $weight_grad_totals_mat;
 }
-
-# 総実行回数
-my $total_count = 0;
-
-# 正解数
-my $answer_match_count = 0;
 
 # エポックの回数だけ訓練セットを実行
 for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
@@ -243,13 +243,13 @@ sub backprop {
   my $answer = SPVM::MyAIUtil->max_index($last_activate_outputs);
   # my $answer = SPVM::MyAIUtil->max_index($softmax_outputs);
   my $desired_answer = SPVM::MyAIUtil->max_index($desired_outputs);
-  $total_count++;
+  $TOTAL_COUNT++;
   if ($answer == $desired_answer) {
-    $answer_match_count++;
+    $ANSWER_MATCH_COUNT++;
   }
   
   # 正解率を出力
-  my $match_rate = $answer_match_count / $total_count;
+  my $match_rate = $ANSWER_MATCH_COUNT / $TOTAL_COUNT;
   print "Match Rate: " . sprintf("%.02f", 100 * $match_rate) . "%\n";
   
   # 活性化された出力の微小変化 / 最後の出力の微小変化 
