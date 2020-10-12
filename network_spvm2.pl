@@ -28,15 +28,15 @@ my $mini_batch_size = 10;
 # 30個の中間出力を通って        (中間出力1)
 # 35個の中間出力を通って        (中間出力2)
 # 0～9の10個に分類する          (出力)
-my $neurons_count_in_layers = [728, 30, 35, 10];
+my $neurons_count_in_layers = SPVM::IntList->newa([728, 30, 35, 10]);
 
 # 各層のm個の入力をn個の出力に変換する関数の情報。入力数、出力数、バイアス、重み
 my $m_to_n_func_infos = [];
 
 # 各層のニューロン数からmからnへの変換関数の情報を作成
-for (my $i = 0; $i < @$neurons_count_in_layers - 1; $i++) {
-  my $inputs_length = $neurons_count_in_layers->[$i];
-  my $outputs_length = $neurons_count_in_layers->[$i + 1];
+for (my $i = 0; $i < $neurons_count_in_layers->length - 1; $i++) {
+  my $inputs_length = $neurons_count_in_layers->get($i);
+  my $outputs_length = $neurons_count_in_layers->get($i + 1);
   
   # バイアスを0で初期化
   my $biases = SPVM::MyAIUtil->array_new_zero($outputs_length);
