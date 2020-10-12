@@ -63,6 +63,20 @@ my $mnist_train_image_info = load_mnist_train_image_file($mnist_train_image_file
 my $mnist_train_label_file = "$FindBin::Bin/data/train-labels-idx1-ubyte";
 my $mnist_train_label_info = load_mnist_train_label_file($mnist_train_label_file);
 
+# MNIEST画像情報をSPVMデータに変換
+my $mnist_train_image_info_spvm = SPVM::Hash->newa([
+  items_count => SPVM::Int->new($mnist_train_image_info->{items_count}),
+  rows_count => SPVM::Int->new($mnist_train_image_info->{rows_count}),
+  columns_count => SPVM::Int->new($mnist_train_image_info->{columns_count}),
+  data => $mnist_train_image_info->{data},
+]);
+
+# MNIESTラベル情報をSPVMデータに変換
+my $mnist_train_label_info_spvm = SPVM::Hash->newa([
+  items_count => SPVM::Int->new($mnist_train_label_info->{items_count}),
+  label_numbers => SPVM::IntList->newa($mnist_train_label_info->{label_numbers}),
+]);
+
 # 訓練データのインデックス(最初の4万枚だけを訓練用データとして利用する。残りの1万枚は検証用データとする)
 my @training_data_indexes = (0 .. 40000);
 
