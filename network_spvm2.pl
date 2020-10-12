@@ -5,6 +5,8 @@ use lib "$FindBin::Bin/network_lib";
 use List::Util 'shuffle';
 
 use SPVM 'SPVM::MyAIUtil';
+use SPVM 'SPVM::Hash';
+use SPVM 'SPVM::List';
 
 # 総実行回数
 our $TOTAL_COUNT = 0;
