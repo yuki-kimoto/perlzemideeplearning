@@ -131,7 +131,9 @@ for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
       $m_to_n_func_mini_batch_infos->get($m_to_n_func_index)->set(biase_grad_totals => SPVM::MyAIUtil->array_new_zero($m_to_n_func_mini_batch_infos->get($m_to_n_func_index)->get('biase_grad_totals')->length));
       
       # ミニバッチにおける各変換関数の重みの傾きの合計を0で初期化して作成
-      $m_to_n_func_mini_batch_infos->get($m_to_n_func_index)->set(weight_grad_totals_mat => SPVM::MyAIUtil->array_new_zero($m_to_n_func_mini_batch_infos->get($m_to_n_func_index)->get('weight_grad_totals_mat')->values->length));
+      warn "DDDDDDDDDDDD " . $m_to_n_func_mini_batch_infos->get($m_to_n_func_index)->get('weight_grad_totals_mat')->values->length;
+      
+      $m_to_n_func_mini_batch_infos->get($m_to_n_func_index)->get("weight_grad_totals_mat")->set_values(SPVM::MyAIUtil->array_new_zero($m_to_n_func_mini_batch_infos->get($m_to_n_func_index)->get('weight_grad_totals_mat')->values->length));
     }
     
     for my $training_data_index (@indexed_for_mini_batch) {
@@ -152,6 +154,9 @@ for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
         SPVM::MyAIUtil->array_add_inplace($m_to_n_func_mini_batch_infos->get($m_to_n_func_index)->get('biase_grad_totals'), $biase_grads->get($m_to_n_func_index));
 
         # ミニバッチにおける各変換関数の重みの傾きを加算
+        warn "AAAAAAAAA " . $m_to_n_func_mini_batch_infos->get($m_to_n_func_index)->get('weight_grad_totals_mat')->values->length;
+        warn "BBBBBBBBB " . $weight_grads_mat->get($m_to_n_func_index)->values->length;
+        
         SPVM::MyAIUtil->array_add_inplace($m_to_n_func_mini_batch_infos->get($m_to_n_func_index)->get('weight_grad_totals_mat')->values, $weight_grads_mat->get($m_to_n_func_index)->values);
       }
     }
@@ -181,8 +186,11 @@ sub backprop {
   my $first_inputs_raw_uint8 = SPVM::new_byte_array_from_bin($first_inputs_packed);
   my $first_inputs_raw_float = SPVM::new_float_array($first_inputs_raw_uint8->to_elems);
   
-  my $first_inputs = SPVM::MyAIUtil->array_div_scalar($first_inputs_raw_float, 255);
+  warn "KKKKKKK " . length $first_inputs_packed;
   
+  warn "IIIIIIIIIIII " . $first_inputs_raw_uint8->length;
+  
+  my $first_inputs = SPVM::MyAIUtil->array_div_scalar($first_inputs_raw_float, 255);
   
   # 期待される出力を確率分布化する
   my $label_number = $mnist_train_label_info_spvm->get('label_numbers')->get($training_data_index);
@@ -243,17 +251,17 @@ sub backprop {
     my $activate_outputs = SPVM::MyAIUtil->array_relu($outputs);
 
     # バックプロパゲーションのために出力を保存
-    push @$outputs_in_m_to_n_funcs, $outputs;
+    $outputs_in_m_to_n_funcs->push($outputs);
     
     # バックプロパゲーションのために次の入力を保存
-    push @$inputs_in_m_to_n_funcs, $activate_outputs;
+    $inputs_in_m_to_n_funcs->push($activate_outputs);
   }
   
   # 最後の出力
-  my $last_outputs = $outputs_in_m_to_n_funcs->get(-1);
+  my $last_outputs = $outputs_in_m_to_n_funcs->get($outputs_in_m_to_n_funcs->length - 1);
   
   # 最後の活性化された出力
-  my $last_activate_outputs = pop @$inputs_in_m_to_n_funcs;
+  my $last_activate_outputs = $inputs_in_m_to_n_funcs->pop;
   
   # softmax関数
   my $softmax_outputs = SPVM::MyAIUtil->softmax($last_activate_outputs);
@@ -299,7 +307,7 @@ sub backprop {
     
   $biase_grads_in_m_to_n_funcs->set($biase_grads_in_m_to_n_funcs->length - 1 => $last_biase_grads);
   $weight_grads_mat_in_m_to_n_funcs->set($biase_grads_in_m_to_n_funcs->length - 1 => $last_weight_grads_mat);
-        
+  
   # 最後の重みとバイアスの変換より一つ前から始める
   for (my $m_to_n_func_index = $m_to_n_func_infos->length - 2; $m_to_n_func_index >= 0; $m_to_n_func_index--) {
     
@@ -322,13 +330,21 @@ sub backprop {
     # 損失関数の微小変化 / この層の重みの微小変化(バックプロパゲーションで求める)
     my $biase_grads_mat = SPVM::MyAIUtil->mat_new($biase_grads, $biase_grads->length, 1);
     my $inputs = $inputs_in_m_to_n_funcs->get($m_to_n_func_index);
+    
+    warn "HHHHHHHH " . $inputs->length;
+    
     my $inputs_mat_transpose = SPVM::MyAIUtil->mat_new($inputs, 1, $inputs->length);
+    
+    warn "GGGGGGGGG " . $biase_grads_mat->values->length . " " . $inputs_mat_transpose->values->length;
+    
     my $weights_grads_mat = SPVM::MyAIUtil->mat_mul($biase_grads_mat, $inputs_mat_transpose);
+    
+    warn "FFFFFFFFFFF $m_to_n_func_index " . $weights_grads_mat->values->length;
     
     $weight_grads_mat_in_m_to_n_funcs->set($m_to_n_func_index => $weights_grads_mat);
   }
 
-  my $m_to_n_func_grad_infos = {};
+  my $m_to_n_func_grad_infos = SPVM::Hash->new([]);
   $m_to_n_func_grad_infos->set(biases => $biase_grads_in_m_to_n_funcs);
   $m_to_n_func_grad_infos->set(weights_mat => $weight_grads_mat_in_m_to_n_funcs);
   
