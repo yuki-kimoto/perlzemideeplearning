@@ -242,6 +242,7 @@ package SPVM::MyAIUtil : precompile {
   # 行列を0で初期化
   sub mat_new_zero : SPVM::MyAIUtil::FloatMatrix ($rows_length : int, $columns_length : int) {
     my $values_length = $rows_length * $columns_length;
+    
     my $mat = new SPVM::MyAIUtil::FloatMatrix;
     $mat->{rows_length} = $rows_length;
     $mat->{columns_length} = $columns_length;
@@ -265,8 +266,10 @@ package SPVM::MyAIUtil : precompile {
     for(my $row = 0; $row < $mat1_rows_length; $row++) {
       for(my $col = 0; $col < $mat2_columns_length; $col++) {
         for(my $incol = 0; $incol < $mat1_columns_length; $incol++) {
-          $mat_out_values->[$row + $col * $mat1_rows_length]
-           += $mat1_values->[$row + $incol * $mat1_rows_length] * $mat2_values->[$incol + $col * $mat2_rows_length];
+          my $elem_part1 = $mat1_values->[$row + $incol * $mat1_rows_length];
+          my $elem_part2 = $mat2_values->[$incol + $col * $mat2_rows_length];
+          my $elem_part =  $elem_part1 * $elem_part2;
+          $mat_out_values->[$row + $col * $mat1_rows_length] += $elem_part;
         }
       }
     }

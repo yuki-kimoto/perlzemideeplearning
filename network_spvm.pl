@@ -68,7 +68,7 @@ for (my $m_to_n_func_index = 0; $m_to_n_func_index < @$m_to_n_func_infos; $m_to_
   my $weights_mat = $m_to_n_func_info->{weights_mat};
   
   # バイアスの長さ
-  my $biases_length = $biases->get_length;
+  my $biases_length = $biases->length;
   
   # ミニバッチにおける各変換関数のバイアスの傾きの合計を0で初期化して作成
   my $biase_grad_totals = SPVM::MyAIUtil->array_new_zero($biases_length);
@@ -107,10 +107,10 @@ for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
       my $weights_mat = $m_to_n_func_info->{weights_mat};
       
       # ミニバッチにおける各変換関数のバイアスの傾きの合計を0で初期化して作成
-      $m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{biase_grad_totals} = SPVM::MyAIUtil->array_new_zero($m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{biase_grad_totals}->get_length);
+      $m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{biase_grad_totals} = SPVM::MyAIUtil->array_new_zero($m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{biase_grad_totals}->length);
       
       # ミニバッチにおける各変換関数の重みの傾きの合計を0で初期化して作成
-      $m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{weight_grad_totals_mat}->set_values(SPVM::MyAIUtil->array_new_zero($m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{weight_grad_totals_mat}->values->get_length));
+      $m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{weight_grad_totals_mat}->set_values(SPVM::MyAIUtil->array_new_zero($m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{weight_grad_totals_mat}->values->length));
     }
     
     for my $training_data_index (@indexed_for_mini_batch) {
@@ -268,9 +268,9 @@ sub backprop {
   
 
   # 損失関数の微小変化 / 最終の層の重みの微小変化
-  my $last_biase_grads_mat = SPVM::MyAIUtil->mat_new($last_biase_grads, $last_biase_grads->get_length, 1);
+  my $last_biase_grads_mat = SPVM::MyAIUtil->mat_new($last_biase_grads, $last_biase_grads->length, 1);
   my $last_inputs = $inputs_in_m_to_n_funcs->[@$inputs_in_m_to_n_funcs - 1];
-  my $last_inputs_transpose_mat = SPVM::MyAIUtil->mat_new($last_inputs, 1, $last_inputs->get_length);
+  my $last_inputs_transpose_mat = SPVM::MyAIUtil->mat_new($last_inputs, 1, $last_inputs->length);
   my $last_weight_grads_mat = SPVM::MyAIUtil->mat_mul($last_biase_grads_mat, $last_inputs_transpose_mat);
     
   $biase_grads_in_m_to_n_funcs->[@$biase_grads_in_m_to_n_funcs - 1] = $last_biase_grads;
@@ -287,7 +287,7 @@ sub backprop {
     my $forword_weights_mat = $m_to_n_func_infos->[$m_to_n_func_index + 1]{weights_mat};
     my $forword_weights_mat_transpose = SPVM::MyAIUtil->mat_transpose($forword_weights_mat);
     my $forword_biase_grads = $biase_grads_in_m_to_n_funcs->[$m_to_n_func_index + 1];
-    my $forword_biase_grads_mat = SPVM::MyAIUtil->mat_new($forword_biase_grads, $forword_biase_grads->get_length, 1);
+    my $forword_biase_grads_mat = SPVM::MyAIUtil->mat_new($forword_biase_grads, $forword_biase_grads->length, 1);
     my $mul_forword_weights_transpose_mat_forword_biase_grads_mat = SPVM::MyAIUtil->mat_mul($forword_weights_mat_transpose, $forword_biase_grads_mat);
     my $mul_forword_weights_transpose_mat_forword_biase_grads_mat_values = $mul_forword_weights_transpose_mat_forword_biase_grads_mat->values;
     my $grads_outputs_to_array_sigmoid = SPVM::MyAIUtil->array_sigmoid_derivative($outputs);
@@ -296,9 +296,9 @@ sub backprop {
     $biase_grads_in_m_to_n_funcs->[$m_to_n_func_index] = $biase_grads;
     
     # 損失関数の微小変化 / この層の重みの微小変化(バックプロパゲーションで求める)
-    my $biase_grads_mat = SPVM::MyAIUtil->mat_new($biase_grads, $biase_grads->get_length, 1);
+    my $biase_grads_mat = SPVM::MyAIUtil->mat_new($biase_grads, $biase_grads->length, 1);
     my $inputs = $inputs_in_m_to_n_funcs->[$m_to_n_func_index];
-    my $inputs_mat_transpose = SPVM::MyAIUtil->mat_new($inputs, 1, $inputs->get_length);
+    my $inputs_mat_transpose = SPVM::MyAIUtil->mat_new($inputs, 1, $inputs->length);
     my $weights_grads_mat = SPVM::MyAIUtil->mat_mul($biase_grads_mat, $inputs_mat_transpose);
     
     $weight_grads_mat_in_m_to_n_funcs->[$m_to_n_func_index] = $weights_grads_mat;
