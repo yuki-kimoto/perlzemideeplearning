@@ -2,6 +2,16 @@ package SPVM::MyAIUtil : precompile {
   use SPVM::Math (expf, sqrtf, logf, sinf);
   use SPVM::Math (log, sin, sqrt);
   use SPVM::Util (crand);
+  
+  sub convert_ubyte_array_to_float_array : float[] ($ubytes : byte[]) {
+    my $floats = new float[scalar @$ubytes];
+    
+    for (my $i = 0; $i < @$ubytes; $i++) {
+      $floats->[$i] = ((int)$ubytes->[$i]) & 0xFF;
+    }
+    
+    return $floats;
+  }
 
   # 学習率とミニバッチ数を考慮してパラメーターを更新
   sub update_params : void ($params : float[], $param_grads : float[], $learning_rate : float, $mini_batch_size : int) {
