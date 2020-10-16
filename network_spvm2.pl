@@ -21,7 +21,7 @@ my $mini_batch_size = 10;
 # 28 * 28 = 728のモノクロ画像を (入力)
 # 30個の中間出力を通って        (中間出力1)
 # 0～9の10個に分類する          (出力)
-my $neurons_count_in_layers = SPVM::IntList->new([784, 30, 10]);
+my $neurons_count_in_layers = SPVM::new_int_array([784, 30, 10]);
 
 # MNIEST画像情報を読み込む - 入力用につかう手書きの訓練データ
 my $mnist_train_image_file = "$FindBin::Bin/data/train-images-idx3-ubyte";
@@ -45,31 +45,8 @@ my $mnist_train_label_info_spvm = SPVM::Hash->new([
   label_numbers => SPVM::IntList->new($mnist_train_label_info->{label_numbers}),
 ]);
 
-# 各層のm個の入力をn個の出力に変換する関数の情報。入力数、出力数、バイアス、重み
-my $m_to_n_func_infos = SPVM::MyAIUtil->init_m_to_n_func_infos($neurons_count_in_layers);
-
-# 訓練データのインデックス(最初の4万枚だけを訓練用データとして利用する。残りの1万枚は検証用データとする)
-my $training_data_indexes = SPVM::new_int_array([0 .. 39999]);
-
-# ミニバッチ単位における各変換関数の情報
-my $m_to_n_func_mini_batch_infos = SPVM::MyAIUtil->init_m_to_n_func_mini_batch_infos($m_to_n_func_infos);
-
-# エポックの回数だけ訓練セットを実行
-for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
-  
-  # 訓練データのインデックスをシャッフル(ランダムに学習させた方が汎用化するらしい)
-  my $training_data_indexes_shuffle = SPVM::MyAIUtil->shufflei($training_data_indexes);
-  
-  SPVM::MyAIUtil->update_params_sgd(
-    $m_to_n_func_mini_batch_infos,
-    $m_to_n_func_infos,
-    $training_data_indexes_shuffle,
-    $mini_batch_size,
-    $mnist_train_image_info_spvm,
-    $mnist_train_label_info_spvm,
-    $learning_rate
-  );
-}
+# ディープネットークを訓練
+SPVM::MyAIUtil->train_deep_network($mnist_train_image_info_spvm, $mnist_train_label_info_spvm, $epoch_count, $mini_batch_size, $neurons_count_in_layers, $learning_rate);
 
 # MNIST画像情報を読み込む
 sub load_mnist_train_image_file {

@@ -24,6 +24,41 @@ package SPVM::MyAIUtil : precompile {
     return $array;
   }
   
+  sub train_deep_network : void ($mnist_train_image_info_spvm : SPVM::Hash, $mnist_train_label_info_spvm : SPVM::Hash,
+    $epoch_count : int, $mini_batch_size : int, $neurons_count_in_layers : int[], $learning_rate : int)
+  {
+    # 各層のm個の入力をn個の出力に変換する関数の情報。入力数、出力数、バイアス、重み
+    my $m_to_n_func_infos = SPVM::MyAIUtil->init_m_to_n_func_infos($neurons_count_in_layers);
+
+    # 訓練データのインデックス(最初の4万枚だけを訓練用データとして利用する。残りの1万枚は検証用データとする)
+    my $training_data_indexes = new int[40000];
+    my $cur_training_data_index = 0;
+    for (my $i = 0; $i < @$training_data_indexes; $i++) {
+      $training_data_indexes->[$i] = $i;
+    }
+
+    # ミニバッチ単位における各変換関数の情報
+    my $m_to_n_func_mini_batch_infos = SPVM::MyAIUtil->init_m_to_n_func_mini_batch_infos($m_to_n_func_infos);
+
+    # エポックの回数だけ訓練セットを実行
+    for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
+      
+      # 訓練データのインデックスをシャッフル(ランダムに学習させた方が汎用化するらしい)
+      my $training_data_indexes_shuffle = SPVM::MyAIUtil->shufflei($training_data_indexes);
+      
+      # 確率的勾配降下法を使ってパラメーターを更新
+      SPVM::MyAIUtil->update_params_sgd(
+        $m_to_n_func_mini_batch_infos,
+        $m_to_n_func_infos,
+        $training_data_indexes_shuffle,
+        $mini_batch_size,
+        $mnist_train_image_info_spvm,
+        $mnist_train_label_info_spvm,
+        $learning_rate
+      );
+    }
+  }
+  
   sub update_params_sgd : void ($m_to_n_func_mini_batch_infos : SPVM::List, $m_to_n_func_infos : SPVM::List, $training_data_indexes_shuffle : int[],
     $mini_batch_size: int, $mnist_train_image_info_spvm : SPVM::Hash, $mnist_train_label_info_spvm : SPVM::Hash, $learning_rate : float) {
  
@@ -93,14 +128,14 @@ package SPVM::MyAIUtil : precompile {
     }
   }
 
-  sub init_m_to_n_func_infos : SPVM::List ($neurons_count_in_layers : SPVM::IntList) {
+  sub init_m_to_n_func_infos : SPVM::List ($neurons_count_in_layers : int[]) {
     # 各層のm個の入力をn個の出力に変換する関数の情報。入力数、出力数、バイアス、重み
     my $m_to_n_func_infos = SPVM::List->new([]);
 
     # 各層のニューロン数からmからnへの変換関数の情報を作成
-    for (my $i = 0; $i < $neurons_count_in_layers->length - 1; $i++) {
-      my $inputs_length = $neurons_count_in_layers->get($i);
-      my $outputs_length = $neurons_count_in_layers->get($i + 1);
+    for (my $i = 0; $i < @$neurons_count_in_layers - 1; $i++) {
+      my $inputs_length = $neurons_count_in_layers->[$i];
+      my $outputs_length = $neurons_count_in_layers->[$i + 1];
       
       # バイアスを0で初期化
       my $biases = SPVM::MyAIUtil->array_new_zero($outputs_length);
@@ -298,7 +333,7 @@ package SPVM::MyAIUtil : precompile {
       # 活性化された出力の微小変化 / 出力の微小変化
       my $outputs = (float[])$outputs_in_m_to_n_funcs->get($m_to_n_func_index);
 
-      # 損失関数の微小変化 / この層のバイアスの微小変化(バックプロパゲーションで求める)
+      # 損失関数の微小変化 / この層のバイアスの微小変化(微分の連鎖率を使って求める)
       # 次の層の重みの傾きの転置行列とバイアスの傾きの転置行列をかけて、それぞれの要素に、活性化関数の導関数をかける
       my $forword_m_to_n_func_info = (SPVM::Hash)$m_to_n_func_infos->get($m_to_n_func_index + 1);
       my $forword_weights_mat = (SPVM::MyAIUtil::FloatMatrix)$forword_m_to_n_func_info->get("weights_mat");
@@ -312,7 +347,7 @@ package SPVM::MyAIUtil : precompile {
 
       $biase_grads_in_m_to_n_funcs->set($m_to_n_func_index => $biase_grads);
       
-      # 損失関数の微小変化 / この層の重みの微小変化(バックプロパゲーションで求める)
+      # 損失関数の微小変化 / この層の重みの微小変化(微分の連鎖率を使って求める)
       my $biase_grads_mat = SPVM::MyAIUtil->mat_new($biase_grads, scalar @$biase_grads, 1);
       my $inputs = (float[])$inputs_in_m_to_n_funcs->get($m_to_n_func_index);
       
