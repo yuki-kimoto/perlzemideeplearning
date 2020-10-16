@@ -23,9 +23,6 @@ my $mini_batch_size = 10;
 # 0～9の10個に分類する          (出力)
 my $neurons_count_in_layers = SPVM::IntList->new([784, 30, 10]);
 
-# 各層のm個の入力をn個の出力に変換する関数の情報。入力数、出力数、バイアス、重み
-my $m_to_n_func_infos = SPVM::MyAIUtil->init_m_to_n_func_infos($neurons_count_in_layers);
-
 # MNIEST画像情報を読み込む - 入力用につかう手書きの訓練データ
 my $mnist_train_image_file = "$FindBin::Bin/data/train-images-idx3-ubyte";
 my $mnist_train_image_info = load_mnist_train_image_file($mnist_train_image_file);
@@ -47,6 +44,9 @@ my $mnist_train_label_info_spvm = SPVM::Hash->new([
   items_count => SPVM::Int->new($mnist_train_label_info->{items_count}),
   label_numbers => SPVM::IntList->new($mnist_train_label_info->{label_numbers}),
 ]);
+
+# 各層のm個の入力をn個の出力に変換する関数の情報。入力数、出力数、バイアス、重み
+my $m_to_n_func_infos = SPVM::MyAIUtil->init_m_to_n_func_infos($neurons_count_in_layers);
 
 # 訓練データのインデックス(最初の4万枚だけを訓練用データとして利用する。残りの1万枚は検証用データとする)
 my @training_data_indexes = (0 .. 40000);
