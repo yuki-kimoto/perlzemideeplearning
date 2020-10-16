@@ -179,7 +179,6 @@ sub backprop {
   
   my $first_inputs_raw_uint8 = SPVM::Util->sliceb($mnist_train_image_data, $image_unit_length * $training_data_index, $image_unit_length);
   my $first_inputs_raw_float = SPVM::MyAIUtil->convert_ubyte_array_to_float_array($first_inputs_raw_uint8);
-  use D;du $first_inputs_raw_float->to_elems;
   
   my $first_inputs = SPVM::MyAIUtil->array_div_scalar($first_inputs_raw_float, 255);
   
