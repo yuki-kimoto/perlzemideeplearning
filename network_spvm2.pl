@@ -75,31 +75,7 @@ my $mnist_train_label_info_spvm = SPVM::Hash->new([
 my @training_data_indexes = (0 .. 40000);
 
 # ミニバッチ単位における各変換関数の情報
-my $m_to_n_func_mini_batch_infos = SPVM::List->new_len($m_to_n_func_infos->length);
-
-# ミニバッチにおける各変換関数のバイアスの傾きの合計とミニバッチにおける各変換関数の重みの傾きの合計を0で初期化して作成
-# メモリ領域を繰り返しつかうためここで初期化
-for (my $m_to_n_func_index = 0; $m_to_n_func_index < $m_to_n_func_infos->length; $m_to_n_func_index++) {
-  my $m_to_n_func_info = $m_to_n_func_infos->get($m_to_n_func_index);
-  my $biases = $m_to_n_func_info->get('biases');
-  my $weights_mat = $m_to_n_func_info->get('weights_mat');
-  
-  # バイアスの長さ
-  my $biases_length = $biases->length;
-
-  # ミニバッチにおける各変換関数のバイアスの傾きの合計を0で初期化して作成
-  my $biase_grad_totals = SPVM::MyAIUtil->array_new_zero($biases_length);
-
-  # ミニバッチにおける各変換関数の重みの傾きの合計を0で初期化して作成
-  my $weight_grad_totals_mat = SPVM::MyAIUtil->mat_new_zero($weights_mat->rows_length, $weights_mat->columns_length);
-  
-  my $hash = SPVM::Hash->new([
-    'biase_grad_totals' => $biase_grad_totals,
-    'weight_grad_totals_mat' => $weight_grad_totals_mat,
-  ]);
-  
-  $m_to_n_func_mini_batch_infos->set($m_to_n_func_index => $hash);
-}
+my $m_to_n_func_mini_batch_infos = SPVM::MyAIUtil->init_m_to_n_func_mini_batch_infos($m_to_n_func_infos);
 
 # エポックの回数だけ訓練セットを実行
 for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
