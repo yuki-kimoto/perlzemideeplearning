@@ -11,6 +11,18 @@ package SPVM::MyAIUtil : precompile {
   # 正解数
   our $ANSWER_MATCH_COUNT : int;
   
+  # シャッフルする
+  sub shufflei : int[] ($array_original : int[], $size : int) {
+    my $array = SPVM::Util->copy_iarray($array_original);
+    for (my $i = 0; $i < $size; $i++) {
+      my $j = crand() % $size;
+      my $t = $array->[$i];
+      $array->[$i] = $array->[$j];
+      $array->[$j] = $t;
+    }
+    return $array;
+  }
+
   sub init_m_to_n_func_mini_batch_infos : SPVM::List ($m_to_n_func_infos : SPVM::List) {
     # ミニバッチ単位における各変換関数の情報
     
