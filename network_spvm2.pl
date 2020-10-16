@@ -49,7 +49,7 @@ my $mnist_train_label_info_spvm = SPVM::Hash->new([
 my $m_to_n_func_infos = SPVM::MyAIUtil->init_m_to_n_func_infos($neurons_count_in_layers);
 
 # 訓練データのインデックス(最初の4万枚だけを訓練用データとして利用する。残りの1万枚は検証用データとする)
-my @training_data_indexes = (0 .. 40000);
+my $training_data_indexes = SPVM::new_int_array([0 .. 40000]);
 
 # ミニバッチ単位における各変換関数の情報
 my $m_to_n_func_mini_batch_infos = SPVM::MyAIUtil->init_m_to_n_func_mini_batch_infos($m_to_n_func_infos);
@@ -58,14 +58,9 @@ my $m_to_n_func_mini_batch_infos = SPVM::MyAIUtil->init_m_to_n_func_mini_batch_i
 for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
   
   # 訓練データのインデックスをシャッフル(ランダムに学習させた方が汎用化するらしい)
-  my @training_data_indexes_shuffle = shuffle @training_data_indexes;
+  my $training_data_indexes_shuffle = SPVM::MyAIUtil->shufflei($training_data_indexes);
   
-  my $count = 0;
-  
-  # ミニバッチサイズ単位で学習
-  my $backprop_count = 0;
-  
-  while (my @indexed_for_mini_batch = splice(@training_data_indexes_shuffle, 0, $mini_batch_size)) {
+  for (my $mini_batch_index = 0; $mini_batch_index < $training_data_indexes_shuffle->length; $mini_batch_index += $mini_batch_size) {
     
     # ミニバッチにおける各変換関数のバイアスの傾きの合計とミニバッチにおける各変換関数の重みの傾きの合計を0で初期化
     for (my $m_to_n_func_index = 0; $m_to_n_func_index < $m_to_n_func_mini_batch_infos->length; $m_to_n_func_index++) {
@@ -80,7 +75,11 @@ for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
       $m_to_n_func_mini_batch_infos->get($m_to_n_func_index)->get("weight_grad_totals_mat")->set_values(SPVM::MyAIUtil->array_new_zero($m_to_n_func_mini_batch_infos->get($m_to_n_func_index)->get('weight_grad_totals_mat')->values->length));
     }
     
-    for my $training_data_index (@indexed_for_mini_batch) {
+    for (my $training_data_indexes_shuffle_index = $mini_batch_index; $training_data_indexes_shuffle_index < $mini_batch_index + $mini_batch_size; $training_data_indexes_shuffle_index++) {
+      my $training_data_index = $training_data_indexes_shuffle->get($training_data_indexes_shuffle_index);
+      
+      warn $training_data_index;
+      
       # バックプロパゲーションを使って重みとバイアスの損失関数に関する傾きを取得
       my $m_to_n_func_grad_infos = SPVM::MyAIUtil->backprop($m_to_n_func_infos, $mnist_train_image_info_spvm, $mnist_train_label_info_spvm, $training_data_index);
       
