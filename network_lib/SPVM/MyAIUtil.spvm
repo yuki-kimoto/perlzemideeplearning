@@ -22,6 +22,37 @@ package SPVM::MyAIUtil : precompile {
     }
     return $array;
   }
+  
+  sub init_m_to_n_func_infos : SPVM::List ($neurons_count_in_layers : SPVM::IntList) {
+    # 各層のm個の入力をn個の出力に変換する関数の情報。入力数、出力数、バイアス、重み
+    my $m_to_n_func_infos = SPVM::List->new([]);
+
+    # 各層のニューロン数からmからnへの変換関数の情報を作成
+    for (my $i = 0; $i < $neurons_count_in_layers->length - 1; $i++) {
+      my $inputs_length = $neurons_count_in_layers->get($i);
+      my $outputs_length = $neurons_count_in_layers->get($i + 1);
+      
+      # バイアスを0で初期化
+      my $biases = SPVM::MyAIUtil->array_new_zero($outputs_length);
+
+      # Xivierの初期値で重みを初期化。重みは列優先行列
+      my $weights_mat = SPVM::MyAIUtil->mat_new_zero($outputs_length, $inputs_length);
+      my $weights_length = $weights_mat->rows_length * $weights_mat->columns_length;
+      $weights_mat->set_values(SPVM::MyAIUtil->array_create_he_init_value($weights_length, $inputs_length));
+      
+      # 変換関数の情報を設定
+      my $m_to_n_func_info = SPVM::Hash->new([
+        (object)
+        inputs_length => SPVM::Int->new($inputs_length),
+        outputs_length => SPVM::Int->new($outputs_length),
+        biases => $biases,
+        weights_mat => $weights_mat,
+      ]);
+      $m_to_n_func_infos->push($m_to_n_func_info);
+    }
+    
+    return $m_to_n_func_infos;
+  }
 
   sub init_m_to_n_func_mini_batch_infos : SPVM::List ($m_to_n_func_infos : SPVM::List) {
     # ミニバッチ単位における各変換関数の情報
