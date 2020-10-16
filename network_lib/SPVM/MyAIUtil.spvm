@@ -23,55 +23,75 @@ package SPVM::MyAIUtil : precompile {
     }
     return $array;
   }
-
-=pod
-  sub update_params_sdg : void () {
-    # ミニバッチにおける各変換関数のバイアスの傾きの合計とミニバッチにおける各変換関数の重みの傾きの合計を0で初期化
-    for (my $m_to_n_func_index = 0; $m_to_n_func_index < $m_to_n_func_mini_batch_infos->length; $m_to_n_func_index++) {
-      my $m_to_n_func_info = $m_to_n_func_infos->get($m_to_n_func_index);
-      my $biases = $m_to_n_func_info->get('biases');
-      my $weights_mat = $m_to_n_func_info->get('weights_mat');
+  
+  sub update_params_sgd : void ($m_to_n_func_mini_batch_infos : SPVM::List, $m_to_n_func_infos : SPVM::List, $training_data_indexes_shuffle : int[],
+    $mini_batch_size: int, $mnist_train_image_info_spvm : SPVM::Hash, $mnist_train_label_info_spvm : SPVM::Hash, $learning_rate : float) {
+ 
+    for (my $training_data_indexes_shuffle_index = 0; $training_data_indexes_shuffle_index < @$training_data_indexes_shuffle; $training_data_indexes_shuffle_index += $mini_batch_size) {
       
-      # ミニバッチにおける各変換関数のバイアスの傾きの合計を0で初期化して作成
-      $m_to_n_func_mini_batch_infos->get($m_to_n_func_index)->set(biase_grad_totals => SPVM::MyAIUtil->array_new_zero($m_to_n_func_mini_batch_infos->get($m_to_n_func_index)->get('biase_grad_totals')->length));
-      
-      # ミニバッチにおける各変換関数の重みの傾きの合計を0で初期化して作成
-      $m_to_n_func_mini_batch_infos->get($m_to_n_func_index)->get("weight_grad_totals_mat")->set_values(SPVM::MyAIUtil->array_new_zero($m_to_n_func_mini_batch_infos->get($m_to_n_func_index)->get('weight_grad_totals_mat')->values->length));
-    }
-    
-    for my $training_data_index (@indexed_for_mini_batch) {
-      # バックプロパゲーションを使って重みとバイアスの損失関数に関する傾きを取得
-      my $m_to_n_func_grad_infos = SPVM::MyAIUtil->backprop($m_to_n_func_infos, $mnist_train_image_info_spvm, $mnist_train_label_info_spvm, $training_data_index);
-      
-      # バイアスの損失関数に関する傾き
-      my $biase_grads = $m_to_n_func_grad_infos->get('biases');
-      
-      # 重みの損失関数に関する傾き
-      my $weight_grads_mat = $m_to_n_func_grad_infos->get('weights_mat');
-
-      # ミニバッチにおける各変換関数のバイアスの傾きの合計とミニバッチにおける各変換関数の重みの傾きを加算
+      # ミニバッチにおける各変換関数のバイアスの傾きの合計とミニバッチにおける各変換関数の重みの傾きの合計を0で初期化
       for (my $m_to_n_func_index = 0; $m_to_n_func_index < $m_to_n_func_mini_batch_infos->length; $m_to_n_func_index++) {
-        my $m_to_n_func_info = $m_to_n_func_infos->get($m_to_n_func_index);
+        my $m_to_n_func_info = (SPVM::Hash)$m_to_n_func_infos->get($m_to_n_func_index);
+        my $biases = $m_to_n_func_info->get("biases");
+        my $weights_mat = $m_to_n_func_info->get("weights_mat");
         
-        # ミニバッチにおける各変換関数のバイアスの傾きを加算
-        SPVM::MyAIUtil->array_add_inplace($m_to_n_func_mini_batch_infos->get($m_to_n_func_index)->get('biase_grad_totals'), $biase_grads->get($m_to_n_func_index));
+        # ミニバッチにおける各変換関数のバイアスの傾きの合計を0で初期化して作成
+        my $m_to_n_func_mini_batch_info = (SPVM::Hash)$m_to_n_func_mini_batch_infos->get($m_to_n_func_index);
+        my $biase_grad_totals = (float[])$m_to_n_func_mini_batch_info->get("biase_grad_totals");
+        $m_to_n_func_mini_batch_info->set(biase_grad_totals => SPVM::MyAIUtil->array_new_zero(scalar @$biase_grad_totals));
+        
+        # ミニバッチにおける各変換関数の重みの傾きの合計を0で初期化して作成
+        my $weight_grad_totals_mat = (SPVM::MyAIUtil::FloatMatrix)$m_to_n_func_mini_batch_info->get("weight_grad_totals_mat");
+        $weight_grad_totals_mat->set_values(SPVM::MyAIUtil->array_new_zero(scalar @{$weight_grad_totals_mat->values}));
+      }
+      
+      for (my $mini_batch_index = 0; $mini_batch_index < $mini_batch_size; $mini_batch_index++) {        
+        my $training_data_index = $training_data_indexes_shuffle->[$training_data_indexes_shuffle_index + $mini_batch_index];
+        
+        # バックプロパゲーションを使って重みとバイアスの損失関数に関する傾きを取得
+        my $m_to_n_func_grad_infos = SPVM::MyAIUtil->backprop($m_to_n_func_infos, $mnist_train_image_info_spvm, $mnist_train_label_info_spvm, $training_data_index);
+        
+        # バイアスの損失関数に関する傾き
+        my $biase_grads_list = (SPVM::List)$m_to_n_func_grad_infos->get("biases");
+        
+        # 重みの損失関数に関する傾き
+        my $weight_grads_mat_list = (SPVM::List)$m_to_n_func_grad_infos->get("weights_mat");
 
-        # ミニバッチにおける各変換関数の重みの傾きを加算
-        SPVM::MyAIUtil->array_add_inplace($m_to_n_func_mini_batch_infos->get($m_to_n_func_index)->get('weight_grad_totals_mat')->values, $weight_grads_mat->get($m_to_n_func_index)->values);
+        # ミニバッチにおける各変換関数のバイアスの傾きの合計とミニバッチにおける各変換関数の重みの傾きを加算
+        for (my $m_to_n_func_index = 0; $m_to_n_func_index < $m_to_n_func_mini_batch_infos->length; $m_to_n_func_index++) {
+          my $m_to_n_func_info = $m_to_n_func_infos->get($m_to_n_func_index);
+          
+          # ミニバッチにおける各変換関数のバイアスの傾きを加算
+          my $m_to_n_func_mini_batch_info = (SPVM::Hash)$m_to_n_func_mini_batch_infos->get($m_to_n_func_index);
+          my $biase_grad_totals = (float[])$m_to_n_func_mini_batch_info->get("biase_grad_totals");
+          my $biase_grads = (float[])$biase_grads_list->get($m_to_n_func_index);
+          SPVM::MyAIUtil->array_add_inplace($biase_grad_totals, $biase_grads);
+
+          # ミニバッチにおける各変換関数の重みの傾きを加算
+          my $weight_grad_totals_mat = (SPVM::MyAIUtil::FloatMatrix)$m_to_n_func_mini_batch_info->get("weight_grad_totals_mat");
+          my $weight_grads_mat = (SPVM::MyAIUtil::FloatMatrix)$weight_grads_mat_list->get($m_to_n_func_index);
+          SPVM::MyAIUtil->array_add_inplace($weight_grad_totals_mat->values, $weight_grads_mat->values);
+        }
+      }
+
+      # 各変換関数のバイアスと重みをミニバッチの傾きの合計を使って更新
+      for (my $m_to_n_func_index = 0; $m_to_n_func_index < $m_to_n_func_infos->length; $m_to_n_func_index++) {
+        
+        # 各変換関数のバイアスを更新(学習率を考慮し、ミニバッチ数で割る)
+        my $m_to_n_func_info = (SPVM::Hash)$m_to_n_func_infos->get($m_to_n_func_index);
+        my $biases = (float[])$m_to_n_func_info->get("biases");
+        
+        my $m_to_n_func_mini_batch_info = (SPVM::Hash)$m_to_n_func_mini_batch_infos->get($m_to_n_func_index);
+        my $biase_grad_totals = (float[])$m_to_n_func_mini_batch_info->get("biase_grad_totals");
+        SPVM::MyAIUtil->update_params($biases, $biase_grad_totals, $learning_rate, $mini_batch_size);
+        
+        # 各変換関数の重みを更新(学習率を考慮し、傾きの合計をミニバッチ数で、ミニバッチ数で割る)
+        my $weights_mat = (SPVM::MyAIUtil::FloatMatrix)$m_to_n_func_info->get("weights_mat");
+        my $weight_grad_totals_mat = (SPVM::MyAIUtil::FloatMatrix)$m_to_n_func_mini_batch_info->get("weight_grad_totals_mat");
+        SPVM::MyAIUtil->update_params($weights_mat->values, $weight_grad_totals_mat->values, $learning_rate, $mini_batch_size);
       }
     }
-
-    # 各変換関数のバイアスと重みをミニバッチの傾きの合計を使って更新
-    for (my $m_to_n_func_index = 0; $m_to_n_func_index < $m_to_n_func_infos->length; $m_to_n_func_index++) {
-      
-      # 各変換関数のバイアスを更新(学習率を考慮し、ミニバッチ数で割る)
-      SPVM::MyAIUtil->update_params($m_to_n_func_infos->get($m_to_n_func_index)->get('biases'), $m_to_n_func_mini_batch_infos->get($m_to_n_func_index)->get('biase_grad_totals'), $learning_rate, $mini_batch_size);
-      
-      # 各変換関数の重みを更新(学習率を考慮し、傾きの合計をミニバッチ数で、ミニバッチ数で割る)
-      SPVM::MyAIUtil->update_params($m_to_n_func_infos->get($m_to_n_func_index)->get('weights_mat')->values, $m_to_n_func_mini_batch_infos->get($m_to_n_func_index)->get('weight_grad_totals_mat')->values, $learning_rate, $mini_batch_size);
-    }
   }
-=cut
 
   sub init_m_to_n_func_infos : SPVM::List ($neurons_count_in_layers : SPVM::IntList) {
     # 各層のm個の入力をn個の出力に変換する関数の情報。入力数、出力数、バイアス、重み

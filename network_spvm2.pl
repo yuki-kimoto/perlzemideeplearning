@@ -49,7 +49,7 @@ my $mnist_train_label_info_spvm = SPVM::Hash->new([
 my $m_to_n_func_infos = SPVM::MyAIUtil->init_m_to_n_func_infos($neurons_count_in_layers);
 
 # 訓練データのインデックス(最初の4万枚だけを訓練用データとして利用する。残りの1万枚は検証用データとする)
-my $training_data_indexes = SPVM::new_int_array([0 .. 40000]);
+my $training_data_indexes = SPVM::new_int_array([0 .. 39999]);
 
 # ミニバッチ単位における各変換関数の情報
 my $m_to_n_func_mini_batch_infos = SPVM::MyAIUtil->init_m_to_n_func_mini_batch_infos($m_to_n_func_infos);
@@ -60,57 +60,15 @@ for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
   # 訓練データのインデックスをシャッフル(ランダムに学習させた方が汎用化するらしい)
   my $training_data_indexes_shuffle = SPVM::MyAIUtil->shufflei($training_data_indexes);
   
-  for (my $mini_batch_index = 0; $mini_batch_index < $training_data_indexes_shuffle->length; $mini_batch_index += $mini_batch_size) {
-    
-    # ミニバッチにおける各変換関数のバイアスの傾きの合計とミニバッチにおける各変換関数の重みの傾きの合計を0で初期化
-    for (my $m_to_n_func_index = 0; $m_to_n_func_index < $m_to_n_func_mini_batch_infos->length; $m_to_n_func_index++) {
-      my $m_to_n_func_info = $m_to_n_func_infos->get($m_to_n_func_index);
-      my $biases = $m_to_n_func_info->get('biases');
-      my $weights_mat = $m_to_n_func_info->get('weights_mat');
-      
-      # ミニバッチにおける各変換関数のバイアスの傾きの合計を0で初期化して作成
-      $m_to_n_func_mini_batch_infos->get($m_to_n_func_index)->set(biase_grad_totals => SPVM::MyAIUtil->array_new_zero($m_to_n_func_mini_batch_infos->get($m_to_n_func_index)->get('biase_grad_totals')->length));
-      
-      # ミニバッチにおける各変換関数の重みの傾きの合計を0で初期化して作成
-      $m_to_n_func_mini_batch_infos->get($m_to_n_func_index)->get("weight_grad_totals_mat")->set_values(SPVM::MyAIUtil->array_new_zero($m_to_n_func_mini_batch_infos->get($m_to_n_func_index)->get('weight_grad_totals_mat')->values->length));
-    }
-    
-    for (my $training_data_indexes_shuffle_index = $mini_batch_index; $training_data_indexes_shuffle_index < $mini_batch_index + $mini_batch_size; $training_data_indexes_shuffle_index++) {
-      my $training_data_index = $training_data_indexes_shuffle->get($training_data_indexes_shuffle_index);
-      
-      warn $training_data_index;
-      
-      # バックプロパゲーションを使って重みとバイアスの損失関数に関する傾きを取得
-      my $m_to_n_func_grad_infos = SPVM::MyAIUtil->backprop($m_to_n_func_infos, $mnist_train_image_info_spvm, $mnist_train_label_info_spvm, $training_data_index);
-      
-      # バイアスの損失関数に関する傾き
-      my $biase_grads = $m_to_n_func_grad_infos->get('biases');
-      
-      # 重みの損失関数に関する傾き
-      my $weight_grads_mat = $m_to_n_func_grad_infos->get('weights_mat');
-
-      # ミニバッチにおける各変換関数のバイアスの傾きの合計とミニバッチにおける各変換関数の重みの傾きを加算
-      for (my $m_to_n_func_index = 0; $m_to_n_func_index < $m_to_n_func_mini_batch_infos->length; $m_to_n_func_index++) {
-        my $m_to_n_func_info = $m_to_n_func_infos->get($m_to_n_func_index);
-        
-        # ミニバッチにおける各変換関数のバイアスの傾きを加算
-        SPVM::MyAIUtil->array_add_inplace($m_to_n_func_mini_batch_infos->get($m_to_n_func_index)->get('biase_grad_totals'), $biase_grads->get($m_to_n_func_index));
-
-        # ミニバッチにおける各変換関数の重みの傾きを加算
-        SPVM::MyAIUtil->array_add_inplace($m_to_n_func_mini_batch_infos->get($m_to_n_func_index)->get('weight_grad_totals_mat')->values, $weight_grads_mat->get($m_to_n_func_index)->values);
-      }
-    }
-
-    # 各変換関数のバイアスと重みをミニバッチの傾きの合計を使って更新
-    for (my $m_to_n_func_index = 0; $m_to_n_func_index < $m_to_n_func_infos->length; $m_to_n_func_index++) {
-      
-      # 各変換関数のバイアスを更新(学習率を考慮し、ミニバッチ数で割る)
-      SPVM::MyAIUtil->update_params($m_to_n_func_infos->get($m_to_n_func_index)->get('biases'), $m_to_n_func_mini_batch_infos->get($m_to_n_func_index)->get('biase_grad_totals'), $learning_rate, $mini_batch_size);
-      
-      # 各変換関数の重みを更新(学習率を考慮し、傾きの合計をミニバッチ数で、ミニバッチ数で割る)
-      SPVM::MyAIUtil->update_params($m_to_n_func_infos->get($m_to_n_func_index)->get('weights_mat')->values, $m_to_n_func_mini_batch_infos->get($m_to_n_func_index)->get('weight_grad_totals_mat')->values, $learning_rate, $mini_batch_size);
-    }
-  }
+  SPVM::MyAIUtil->update_params_sgd(
+    $m_to_n_func_mini_batch_infos,
+    $m_to_n_func_infos,
+    $training_data_indexes_shuffle,
+    $mini_batch_size,
+    $mnist_train_image_info_spvm,
+    $mnist_train_label_info_spvm,
+    $learning_rate
+  );
 }
 
 # MNIST画像情報を読み込む
