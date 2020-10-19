@@ -1,0 +1,25 @@
+<h2>tanh関数の導関数 - 活性化関数の導関数</h2>
+
+<a href="/blog/20200911102242.html">tanh関数</a>の<a href="/blog/20200919123308.html">導関数</a>をPerlで書いてみます。
+
+tanh関数の導関数をPerlで書いてみます。tanh関数の導関数は、バックプロパゲーションに利用します。
+
+<pre>
+use strict;
+use warnings;
+use Math::Trig 'tanh';
+
+sub tanh_derivative {
+  my ($x) = @_;
+  
+  my $tanh_derivative = 1 - tanh($x) ** 2;
+  
+  return $tanh_derivative;
+}
+
+my $value1 = 0.5;
+my $tanh_derivative1 = tanh_derivative($value1);
+
+# 0.786447732965927
+print "$tanh_derivative1\n";
+</pre>
