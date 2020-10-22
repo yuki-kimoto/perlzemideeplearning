@@ -81,7 +81,7 @@ for (my $i = 0; $i < @$neurons_count_in_layers - 1; $i++) {
   # Xivierの初期値で重みを初期化。重みは列優先行列
   my $weights_mat = mat_new_zero($outputs_length, $inputs_length);
   my $weights_length = $weights_mat->{rows_length} * $weights_mat->{columns_length};
-  $weights_mat->{values} = array_create_he_init_value($weights_length, $inputs_length);
+  $weights_mat->{values} = array_create_xavier_init_value($weights_length, $inputs_length);
 
   # 変換関数の情報を設定
   $m_to_n_func_infos->[$i] = {
