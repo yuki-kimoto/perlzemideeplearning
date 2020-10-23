@@ -2,27 +2,25 @@
 
 このプログラム
 
-deep_learning_relu_softmax.pl
+deep_learning_relu_softmax_adam.pl
 
 は
 
-ニューラルネットワークと深層学習
+deep_learning_relu_softmax.pl
 
-https://nnadl-ja.github.io/nnadl_site_ja/
+から、パラメーター更新アルゴリズムにAdamを追加したものです。
 
-を参考にした、ディープラーニングプログラムのPerlへの最初の移植
+・パラメータ更新最適化アルゴリズムはAdam
 
-を行ったもの
+以下は、以前のプログラムにもあるものです。
 
-deep_learning_first.pl
-
-を
-
-重みの初期化にHeの初期値、活性化関数をReLU、最終出力の活性化関数をsoftmax関数に変更したものです。
+・重みの初期化にHeの初期値
+・活性化関数をReLU
+・最終出力の活性化関数をsoftmax関数
+・損失関数はクロスエントロピー関数
+・隠れ層は2層
 
 ディープラーニングのパターン認識におけるより現代的で効果的な構成に変更を行っています。
-
-隠れ層を1つ増やして2層にして、正しく実行できるかも確認しています。
 
 =cut
 
