@@ -40,6 +40,11 @@ my $epoch_count = 30;
 # ミニバッチサイズ
 my $mini_batch_size = 10;
 
+# Adamのパラメーター
+my $adam_much_small_value = 1e-8;
+my $adam_before_moment_weight = 0.9;
+my $adam_before_velocity_weight = 0.999;
+
 # 各層のニューロンの数
 # 28 * 28 = 784のモノクロ画像を (入力)
 # 30個の中間出力を通って        (中間出力)
@@ -123,7 +128,7 @@ for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
   my $backprop_count = 0;
   
   # Adamの情報
-  my $adam_infos = [];
+  my $adam_update_infos = [];
   
   # Adamのバイアスと重みに関するモーメントとベロシティの初期化
   for (my $m_to_n_func_index = 0; $m_to_n_func_index < @$m_to_n_func_infos; $m_to_n_func_index++) {
@@ -133,11 +138,11 @@ for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
     
     # Adamのバイアスに関するモーメントを0で初期化して作成
     my $biase_moments = array_new_zero(scalar @$biases);
-    $adam_infos->[$m_to_n_func_index]{biase_moments} = $biase_moments;
+    $adam_update_infos->[$m_to_n_func_index]{biase_moments} = $biase_moments;
     
     # Adamのバイアスに関するベロシティを0で初期化して作成
     my $baise_velocities = array_new_zero(scalar @$biases);
-    $adam_infos->[$m_to_n_func_index]{baise_velocities} = $baise_velocities;
+    $adam_update_infos->[$m_to_n_func_index]{baise_velocities} = $baise_velocities;
     
     # Adamの重みに関するモーメントを0で初期化して作成
     my $weight_moments_mat = {
@@ -145,7 +150,7 @@ for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
       columns_length => $weights_mat->{columns_length},
       values => array_new_zero(scalar @{$weights_mat->{values}}),
     };
-    $adam_infos->[$m_to_n_func_index]{weight_moments_mat} = $weight_moments_mat;
+    $adam_update_infos->[$m_to_n_func_index]{weight_moments_mat} = $weight_moments_mat;
     
     # Adamの重みに関するベロシティを0で初期化して作成
     my $weight_velocities_mat = {
@@ -153,8 +158,15 @@ for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
       columns_length => $weights_mat->{columns_length},
       values => array_new_zero(scalar @{$weights_mat->{values}}),
     };
-    $adam_infos->[$m_to_n_func_index]{weight_velocities_mat} = $weight_velocities_mat;
+    $adam_update_infos->[$m_to_n_func_index]{weight_velocities_mat} = $weight_velocities_mat;
   }
+  
+  my $adam_info = {
+    adam_much_small_value => $adam_much_small_value,
+    adam_before_moment_weight => $adam_before_moment_weight,
+    adam_before_velocity_weight => $adam_before_velocity_weight,
+    update_infos => $adam_update_infos,
+  };
   
   while (my @indexed_for_mini_batch = splice(@training_data_indexes_shuffle, 0, $mini_batch_size)) {
     
@@ -194,24 +206,33 @@ for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
     }
 
     # 各変換関数のバイアスと重みをミニバッチの傾きの合計を使って更新
-    for (my $m_to_n_func_index = 0; $m_to_n_func_index < @$m_to_n_func_infos; $m_to_n_func_index++) {
-      
-      # 各変換関数のバイアスを更新(学習率を考慮し、ミニバッチ数で割る)
-      update_params($m_to_n_func_infos->[$m_to_n_func_index]{biases}, $m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{biase_grad_totals}, $learning_rate, $mini_batch_size);
-      
-      # 各変換関数の重みを更新(学習率を考慮し、傾きの合計をミニバッチ数で、ミニバッチ数で割る)
-      update_params($m_to_n_func_infos->[$m_to_n_func_index]{weights_mat}{values}, $m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{weight_grad_totals_mat}{values}, $learning_rate, $mini_batch_size);
-    }
+    update_params($m_to_n_func_infos, $m_to_n_func_mini_batch_infos, $learning_rate, $mini_batch_size);
   }
 }
 
 # 学習率とミニバッチ数を考慮してパラメーターを更新
 sub update_params {
-  my ($params, $param_grads, $learning_rate, $mini_batch_size) = @_;
-  
-  for (my $param_index = 0; $param_index < @$params; $param_index++) {
-    my $update_diff = ($learning_rate / $mini_batch_size) * $param_grads->[$param_index];
-    $params->[$param_index] -= $update_diff;
+  my ($m_to_n_func_infos, $m_to_n_func_mini_batch_infos, $learning_rate, $mini_batch_size) = @_;
+
+  for (my $m_to_n_func_index = 0; $m_to_n_func_index < @$m_to_n_func_infos; $m_to_n_func_index++) {
+    
+    # 各変換関数のバイアスを更新(学習率を考慮し、ミニバッチ数で割る)
+    my $biases = $m_to_n_func_infos->[$m_to_n_func_index]{biases};
+    my $biase_grad_totals = $m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{biase_grad_totals};
+    my $weights_mat_values = $m_to_n_func_infos->[$m_to_n_func_index]{weights_mat}{values};
+    my $weight_grad_totals_mat_values = $m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{weight_grad_totals_mat}{values};
+    
+    # バイアスの更新
+    for (my $biase_index = 0; $biase_index < @$biases; $biase_index++) {
+      my $update_diff = ($learning_rate / $mini_batch_size) * $biase_grad_totals->[$biase_index];
+      $biases->[$biase_index] -= $update_diff;
+    }
+    
+    # 重みの更新
+    for (my $weights_mat_values_index = 0; $weights_mat_values_index < @$weights_mat_values; $weights_mat_values_index++) {
+      my $update_diff = ($learning_rate / $mini_batch_size) * $weight_grad_totals_mat_values->[$weights_mat_values_index];
+      $weights_mat_values->[$weights_mat_values_index] -= $update_diff;
+    }
   }
 }
 
