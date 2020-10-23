@@ -1,0 +1,61 @@
+<h2>Adam - SGDを改善したパラメーター更新最適化アルゴリズム</h2>
+
+AdamはSGDを改善したパラメーター更新最適化アルゴリズムです。<a href="/blog/20201017123741.html">SGD</a>における学習率の部分が、訓練を行う毎に更新されていくことが特徴です。ひとつ前で行った更新量を、考慮にいれるというところも特徴です。
+
+ひとつのパラメーターを更新する場合におけるAdamのアルゴリズムをPerlで書いてみます。<a href="/blog/20201016143424.html">バイアス</a>を更新する場合のサンプルです。<a href="/blog/20201015143424.html">重み</a>の場合も同じです。
+
+<pre>
+# Adam
+
+use strict;
+use warnings;
+
+# ハイパーパラメーター
+my $biase = 0.14;
+my $learning_rate = 0.001;
+my $much_small_value = 1e-8;
+my $before_moment_weight = 0.9;
+my $before_velocity_weight = 0.999;
+
+# モーメントの値
+my $moment = 0;
+
+# ヴェロシティの値
+my $velocity = 0;
+for (my $i = 0; $i < 10; $i++) {
+  my $grad = calc_grad();
+  $moment = $before_moment_weight * $moment + (1 - $before_moment_weight) * $grad;
+  $velocity = $before_velocity_weight * $velocity + (1 - $before_velocity_weight) * $grad * $grad;
+  
+  my $cur_moment = $moment / (1 - $before_moment_weight);
+  my $cur_velocity = $velocity / (1 - $before_velocity_weight);
+  
+  $biase -= ($learning_rate / (sqrt($cur_velocity) + $much_small_value)) * $cur_moment;
+}
+
+# 傾きを求める
+sub calc_grad {
+  
+  # 便宜的な値を返す
+  my $grad = rand;
+  
+  return $grad;
+}
+</pre>
+
+初期値の推奨と呼ばれているものは以下です。ただしこれは、初期値であって、正答率が速く上昇し、最終的な正答率を高くするためには、最適に設定する必要があります。
+
+<pre>
+my $learning_rate = 0.001;
+my $much_small_value = 1e-8;
+my $before_moment_weight = 0.9;
+my $before_velocity_weight = 0.999;
+</pre>
+
+<h3>Adamの式にはどのような意味があるのですか?</h3>
+
+僕には、よくわかりません。Adamによる最適化という記事がわかりやすいと感じました。
+
+<ul>
+  <li><a href="https://www.renom.jp/ja/notebooks/tutorial/basic_algorithm/adam/notebook.html">Adamによる最適化</a></li>
+</ul>
