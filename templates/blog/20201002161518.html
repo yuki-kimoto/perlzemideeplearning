@@ -42,7 +42,7 @@ my $softmax_outputs = softmax($outputs);
 print "@$softmax_outputs\n";
 </pre>
 
-<a href="/blog/20200901120907.html">損失関数</a>である<a href="/blog/20200831120907.html">交差エントロピー誤差</a>は、引数の値に0を含んでいる場合に、log(0)となるので、計算不能になりますが、softmax関数を出力層の活性化関数として使うと回避できます。
+<a href="/blog/20200901120907.html">損失関数</a>である<a href="/blog/20200831120907.html">クロスエントロピー誤差</a>は、引数の値に0を含んでいる場合に、log(0)となるので、計算不能になりますが、softmax関数を出力層の活性化関数として使うと回避できます。
 
 <h3>softmax関数の導関数</h3>
 
