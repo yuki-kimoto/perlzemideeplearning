@@ -128,7 +128,7 @@ for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
     }
     
     for my $training_data_index (@indexed_for_mini_batch) {
-      # バックプロパゲーションを使って重みとバイアスの損失関数に関する傾きを取得
+      # 逆誤伝播法を使って重みとバイアスの損失関数に関する傾きを取得
       my $m_to_n_func_grad_infos = backprop($m_to_n_func_infos, $mnist_train_image_info, $mnist_train_label_info, $training_data_index);
       
       # バイアスの損失関数に関する傾き
@@ -173,7 +173,7 @@ sub update_params {
 
 my $count = 0;
 
-# バックプロパゲーション
+# 逆誤伝播法
 sub backprop {
   my ($m_to_n_func_infos, $mnist_train_image_info, $mnist_train_label_info, $training_data_index) = @_;
   
@@ -216,7 +216,7 @@ sub backprop {
   my $outputs_in_m_to_n_funcs = [];
   
   # 入力層の入力から出力層の出力を求める
-  # バックプロパゲーションのために各層の出力と活性化された出力を保存
+  # 逆誤伝播法のために各層の出力と活性化された出力を保存
   for (my $m_to_n_func_index = 0; $m_to_n_func_index < @$m_to_n_func_infos; $m_to_n_func_index++) {
     my $cur_inputs = $inputs_in_m_to_n_funcs->[-1];
     my $inputs_length = $m_to_n_func_infos->[$m_to_n_func_index]{inputs_length};
@@ -247,10 +247,10 @@ sub backprop {
     # 活性化された出力 - 出力に活性化関数を適用
     my $activate_outputs = array_sigmoid($outputs);
     
-    # バックプロパゲーションのために出力を保存
+    # 逆誤伝播法のために出力を保存
     push @$outputs_in_m_to_n_funcs, $outputs;
     
-    # バックプロパゲーションのために次の入力を保存
+    # 逆誤伝播法のために次の入力を保存
     push @$inputs_in_m_to_n_funcs, $activate_outputs;
   }
 
@@ -308,7 +308,7 @@ sub backprop {
     # 活性化された出力の微小変化 / 出力の微小変化
     my $outputs = $outputs_in_m_to_n_funcs->[$m_to_n_func_index];
 
-    # 損失関数の微小変化 / この層のバイアスの微小変化(バックプロパゲーションで求める)
+    # 損失関数の微小変化 / この層のバイアスの微小変化(逆誤伝播法で求める)
     # 次の層の重みの転置行列とバイアスの傾きをかけて、それぞれの要素に、活性化関数の導関数をかける
     my $forword_weights_mat = $m_to_n_func_infos->[$m_to_n_func_index + 1]{weights_mat};
     my $forword_weights_mat_transpose = mat_transpose($forword_weights_mat);
@@ -321,7 +321,7 @@ sub backprop {
 
     $biase_grads_in_m_to_n_funcs->[$m_to_n_func_index] = $biase_grads;
     
-    # 損失関数の微小変化 / この層の重みの微小変化(バックプロパゲーションで求める)
+    # 損失関数の微小変化 / この層の重みの微小変化(逆誤伝播法で求める)
     my $biase_grads_mat = mat_new($biase_grads, scalar @$biase_grads, 1);
     my $inputs = $inputs_in_m_to_n_funcs->[$m_to_n_func_index];
     my $inputs_mat_transpose = mat_new($inputs, 1, scalar @$inputs);
