@@ -57,14 +57,14 @@ my $x = 3;
 my $x_delta = 0.0000001;
 
 # 定数関数の微分
-my $func_const_derivative = (func_const($x + $x_delta) - func_const($x)) / (($x + $x_delta) - $x);
+my $const_derivative = (const($x + $x_delta) - const($x)) / (($x + $x_delta) - $x);
 
 # 定数関数
-sub func_const {
+sub const {
   return 5;
 }
 
-print $func_const_derivative;
+print $const_derivative;
 </pre>
 
 「$x」がどのような値であっても、結果は「0」になることを確認してみてください。
@@ -73,7 +73,7 @@ print $func_const_derivative;
 
 <pre>
 # 定数関数の微分
-sub func_const_derivative {
+sub const_derivative {
   return 0;
 }
 </pre>
@@ -112,10 +112,10 @@ my $x = 3;
 my $x_delta = 0.0000001;
 
 # 一次関数の微分
-my $func_liner_derivative = (func_liner($x + $x_delta) - func_liner($x)) / (($x + $x_delta) - $x);
+my $liner_derivative = (liner($x + $x_delta) - liner($x)) / (($x + $x_delta) - $x);
 
 # 一次関数
-sub func_liner {
+sub liner {
   my ($x) = @_;
   
   my $y = 3 * $x + 2;
@@ -123,7 +123,7 @@ sub func_liner {
   return $y;
 }
 
-print $func_liner_derivative;
+print $liner_derivative;
 </pre>
 
 「$x」がどのような値でも、結果が「3」になることを確認してみてください。今回の場合は、誤差があって「3.00000000444089」となりました。「$x_delta」が極限まで0に近づくと、3になります。
@@ -132,7 +132,122 @@ print $func_liner_derivative;
 
 <pre>
 # 一次関数の微分
-sub func_liner_derivative {
+sub liner_derivative {
   return 3;
 }
 </pre>
+
+<h3>活性化関数の微分</h3>
+
+ディープラーニングでは、ニューロンの活性化の度合いを表現するための活性化関数と呼ばれる関数があります。ただし、実際には、ニューロンの活性の度合いを表現しているというよりも、逆誤差伝播法において、ひとつのパラメーターに対する損失関数の傾きを求めるために導入されていると考えた方がよいのかもしれません。
+
+活性化関数の微分つまり、活性化関数の導関数を導出することはここではしません。ソウトウェアエンジニアとして理解しておく必要があることは、導関数が傾きを求めるための関数であるということです。
+
+導関数がソースコードに出現したら「おっ、ここでは、傾きを求めているのだな」と考えてください。
+
+<pre>
+# 活性化関数
+sub activate {
+  my ($input) = @_;
+  
+  # ...
+  
+  return $output;
+}
+
+# 活性化関数の微分
+sub activate_derivative {
+  my ($input) = @_;
+  
+  # ...
+  
+  return $output;
+}
+</pre>
+
+<h3>損失関数の微分</h3>
+
+ディープラーニングでは、誤差の指標である損失関数の値を小さくすることを目標にパラメータが調整されていきます。損失関数の微分について考えてみます。
+
+損失関数への入力は複数です。損失関数の出力はひとつです。
+
+損失関数が、これまで見てきた関数と異なるのは、複数の入力に対して、一つの出力を返すことです。
+
+<pre>
+# 損失関数
+sub cost {
+  my ($inputs) = @_;
+  
+  my $output;
+  
+  # ...
+  
+  return $output;
+}
+</pre>
+
+ここで「おやっ」となると思います。複数の入力に対して、一つの出力を行う関数の微分なんて習ったことないぞと。そもそも、それはなんだい?
+
+結論を先に書くと、損失関数の微分の結果は、複数の入力に対して、複数の出力になります。
+
+<pre>
+# 損失関数の微分
+sub cost_derivative {
+  my ($inputs) = @_;
+  
+  my $outputs = [];
+  
+  # ...
+  
+  return $outputs;
+}
+</pre>
+
+ただしこれは、そう見えるというだけで、実は、一つの入力に対して、ひとつの出力があるのを、まとめているだけです。cost_derivative_eachというひとつの入力に対して、ひとつの出力を行う関数を使って、損失関数の微分を書き直してみましょう。
+
+<pre>
+sub cost_derivative {
+  my ($inputs) = @_;
+  
+  my $outputs = [];
+  for (my $i = 0; $i < @$inputs; $i++) {
+    $outputs->[$i] = cost_derivative_each($inputs->[$i]);
+  }
+  # ...
+  
+  return $outputs;
+}
+
+# 損失関数
+sub cost_derivative_each {
+  my ($input) = @_;
+  
+  my $output;
+  
+  # ...
+  
+  return $output;
+}
+</pre>
+
+誤解を恐れずにいえば、注目する一つの入力以外の入力は、定数のようなものとして扱われ、損失関数の微分の結果には何ら影響を与えません。
+
+損失関数の一つであるクロースエントロピー関数をみてください。式は複雑ですが、それぞれの入力の結果が、独立していることを感じ取ってもらえればOKです。
+
+<pre>
+# クロスエントロピーコストの導関数
+sub cross_entropy_cost_derivative {
+  my ($vec_a, $vec_y) = @_;
+  
+  my $vec_out = [];
+  for (my $i = 0; $i < @$vec_a; $i++) {
+    $vec_out->[$i] = $vec_a->[$i] - $vec_y->[$i];
+  }
+  
+  return $vec_out;
+}
+</pre>
+
+<h3>偏微分とは何ですか?</h3>
+
+偏微分とは、微分のことです(笑)。注目する入力変数以外を、すべて定数とみなす微分です。
