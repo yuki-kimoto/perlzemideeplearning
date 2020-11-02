@@ -276,7 +276,7 @@ sub cross_entropy_cost_derivative {
 
 <pre>
 # バイアスを含んだ式から出力求める(最後のmからnの変換関数)
-my $output = $weigth * $input + $biase;
+my $output0 = $weigth0_0 * $input0 + $weigth01 * $input1 + $biase0;
 
 # 活性化関数を適用
 my $acivate_output = activate($output);
@@ -291,13 +291,13 @@ mからnへの変換関数は、ひとつのバイアスに注目することに
 
 <pre>
 # バイアスを含んだ式から出力求める(最後のmからnの変換関数)
-my $output = $biase + C;
+my $output = $biase0 + C;
 </pre>
 
-これを微分するとどうなるでしょうか? Cは定数関数ですので、微分は0になりますね。$biaseの係数は「1」なので、微分は「1」となります。つまり、傾きは「1」です。
+これを微分するとどうなるでしょうか? Cは定数関数ですので、微分は0になりますね。$biase0の係数は「1」なので、微分は「1」となります。つまり、傾きは「1」です。
 
 <pre>
-my $m_to_n_grad_for_biase = 1;
+my $m_to_n_grad_for_biase0 = 1;
 </pre>
 
 次に活性化関数の傾きはどうなるでしょうか? これは、活性化関数の導関数を使います。
@@ -318,7 +318,142 @@ my $cost_grad_for_activate_output = cost_derivative($activate_output, $other_arg
 
 <pre>
 # ひとつのバイアスの損失関数に対する傾き
-my $cost_grad_for_biase = $m_to_n_grad_for_biase * $acivate_grad_for_output * $cost_grad_for_activate_output;
+my $cost_grad_for_biase0 = $m_to_n_grad_for_biase0 * $acivate_grad_for_output * $cost_grad_for_activate_output;
 </pre>
 
-求まりました。
+求まりました。他のバイアスについても、同じ方法で求まります。すべて求まったとすると、以下のような配列になります。
+
+<pre>
+[
+  $cost_grad_for_biase0,
+  $cost_grad_for_biase1,
+  $cost_grad_for_biase2,
+]
+</pre>
+
+<h3>最後の重みに対する損失関数の傾きを求める</h3>
+
+最後の重みに対する損失関数の傾きを求めてみましょう。バイアスの次は、重みにチャレンジします。
+
+最後のmからnへの変換関数のひとつの重みに着目してみましょう。ひとつの重みから見ると、重みを含んだ式は、最後のmからnの変換関数、活性化関数、損失関数につながっています。
+
+<pre>
+# 重みを含んだ式から出力求める(最後のmからnの変換関数)
+my $output0 = $weigth0_0 * $input0 + $weigth01 * $input1 + $biase0;
+
+# 活性化関数を適用
+my $acivate_output = activate($output);
+
+# 損失関数を適用(引数は、注目している$activate_outputとその他の引数という形で便宜的に記述)
+my $cost = cost($activate_output, $other_args);
+</pre>
+
+mからnへの変換関数は、ひとつの重みに注目することによって、単なる一次式になります。
+
+注目する重み以外は定数とみなせます。わかりやすく書くと、以下になります。入力も「INPUT0」と書いて、定数とみなしていることに注目してください。(実際のコードでは、そのまま変数として扱います。)
+
+<pre>
+# 重みを含んだ式から出力求める(最後のmからnの変換関数)
+my $output = $weigth0_0 * INPUT0 + C;
+</pre>
+
+これを微分するとどうなるでしょうか? Cは定数関数ですので、微分は0になりますね。$weight0の係数は「INPUT0」なので、微分は「INPUT0」となります。つまり、傾きは「INPUT0」です。
+
+<pre>
+my $m_to_n_grad_for_weight = INPUT0;
+</pre>
+
+次に活性化関数の傾きはどうなるでしょうか? これは、活性化関数の導関数を使います。
+
+<pre>
+# 活性化関数の傾き
+my $acivate_grad_for_output = activate_derivative($output);
+</pre>
+
+次に損失関数の傾きはどうなるでしょうか? これは、損失関数の導関数を使います。
+
+<pre>
+# 損失関数の傾き
+my $cost_grad_for_activate_output = cost_derivative($activate_output, $other_args);
+</pre>
+
+重みに対する損失関数の傾きは、それぞれの傾きの積で求められるのでした。
+
+<pre>
+# ひとつの重みの損失関数に対する傾き
+my $cost_grad_for_weight = $m_to_n_grad_for_weight * $acivate_grad_for_output * $cost_grad_for_activate_output;
+</pre>
+
+求まりました。他の重みに対しても同じ方法で求まります。
+
+重みの損失関数に対する傾きと、バイアスの損失関数に対する傾きの関係を見ておきましょう。重みの係数は「INPUT0」、バイアスの係数は「1」ですので。重みに関する傾きは、バイアスに関する傾きの「INPUT0」倍になっています。
+
+ということは、バイアスの損失関数に対する傾きを計算して「INPUT0」倍すれば、重みの損失関数に対する傾きを求められます。
+
+<pre>
+my $cost_grad_for_weight = $cost_grad_for_biase0 * INPUT0;
+</pre>
+
+すべての重みの損失関数に関する傾きが求まったとすると、以下のような配列になります。3行2列の<a href="/blog/20200914103640.html">列優先の行列</a>として表現しています。
+
+<pre>
+[
+  $cost_grad_for_weight0_0,
+  $cost_grad_for_weight1_0,
+  $cost_grad_for_weight2_0,
+
+  $cost_grad_for_weight0_1,
+  $cost_grad_for_weight1_1,
+  $cost_grad_for_weight2_1,
+]
+</pre>
+
+重みの損失関数に対する傾きを、バイアスの損失関数に対する傾きとの関係を考慮して記述すると以下のようになります。
+
+<pre>
+[
+  $cost_grad_for_biase0 * INPUT0,
+  $cost_grad_for_biase1 * INPUT0,
+  $cost_grad_for_biase2 * INPUT0,
+
+  $cost_grad_for_biase0 * INPUT1,
+  $cost_grad_for_biase1 * INPUT1,
+  $cost_grad_for_biase2 * INPUT1,
+]
+</pre>
+
+<h3>重みの損失関数に対する傾きを行列で表現する</h3>
+
+重みの損失関数に対する傾きを<a href="/blog/20200928161518.html">行列</a>で表現してみましょう。それぞれの重みに対する損失関数の傾きは、ひとつづつ求まりますが、これをまとめて表現したものが行列になります。
+
+バイアス行列と入力行列を<a href="/blog/20200917123308.html">転置させた行列</a>の積になります。
+
+<pre>
+my $cost_grads_biases = [
+  $cost_grad_for_biase0,
+  $cost_grad_for_biase1,
+  $cost_grad_for_biase2,
+];
+
+my $inputs = [
+  $input0,
+  $input1
+];
+
+# バイアス行列 * 入力行列の転置
+my $cost_grads_weights = mul_mat(to_mat($cost_grads_biases), transpose(to_mat($inputs)));
+</pre>
+
+結果は以下になります。個別に考えたものと、行列で計算した結果が一致していることを確認してみてください。
+
+<pre>
+[
+  $cost_grad_for_biase0 * $input0,
+  $cost_grad_for_biase1 * $input0,
+  $cost_grad_for_biase2 * $input0,
+
+  $cost_grad_for_biase0 * $input1
+  $cost_grad_for_biase1 * $input1
+  $cost_grad_for_biase2 * $input1
+]
+</pre>
