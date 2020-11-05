@@ -32,18 +32,16 @@ my $mnist_train_label_file = "$FindBin::Bin/data/train-labels-idx1-ubyte";
 my $mnist_train_label_info = load_mnist_train_label_file($mnist_train_label_file);
 
 # MNIEST画像情報をSPVMデータに変換
-my $mnist_train_image_info_spvm = SPVM::Hash->new([
-  items_count => SPVM::Int->new($mnist_train_image_info->{items_count}),
-  rows_count => SPVM::Int->new($mnist_train_image_info->{rows_count}),
-  columns_count => SPVM::Int->new($mnist_train_image_info->{columns_count}),
-  data => SPVM::new_byte_array_from_bin($mnist_train_image_info->{data}),
-]);
+my $mnist_train_image_info_spvm = SPVM::Hash->new;
+$mnist_train_image_info_spvm->set_int(items_count => $mnist_train_image_info->{items_count});
+$mnist_train_image_info_spvm->set_int(rows_count => $mnist_train_image_info->{rows_count});
+$mnist_train_image_info_spvm->set_int(columns_count => $mnist_train_image_info->{columns_count});
+$mnist_train_image_info_spvm->set(data => SPVM::new_byte_array_from_bin($mnist_train_image_info->{data}));
 
 # MNIESTラベル情報をSPVMデータに変換
-my $mnist_train_label_info_spvm = SPVM::Hash->new([
-  items_count => SPVM::Int->new($mnist_train_label_info->{items_count}),
-  label_numbers => SPVM::IntList->new($mnist_train_label_info->{label_numbers}),
-]);
+my $mnist_train_label_info_spvm = SPVM::Hash->new;
+$mnist_train_label_info_spvm->set_int(items_count => $mnist_train_label_info->{items_count});
+$mnist_train_label_info_spvm->set(label_numbers => SPVM::IntList->new($mnist_train_label_info->{label_numbers}));
 
 # ディープネットークを訓練
 SPVM::MyAIUtil->train_deep_network($mnist_train_image_info_spvm, $mnist_train_label_info_spvm, $epoch_count, $mini_batch_size, $neurons_count_in_layers, $learning_rate);
