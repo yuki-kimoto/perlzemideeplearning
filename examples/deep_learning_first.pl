@@ -291,16 +291,12 @@ sub backprop {
   # 最後の活性化された出力
   my $last_activate_outputs = pop @$inputs_in_m_to_n_funcs;
   
-  # softmax関数
-  # my $softmax_outputs = softmax($last_activate_outputs);
-  
   # 誤差
   my $cost = cross_entropy_cost($last_activate_outputs, $desired_outputs);
   print "Cost: " . sprintf("%.3f", $cost) . "\n";
   
   # 正解したかどうか
   my $answer = max_index($last_activate_outputs);
-  # my $answer = max_index($softmax_outputs);
   my $desired_answer = max_index($desired_outputs);
   $total_count++;
   if ($answer == $desired_answer) {
@@ -315,11 +311,10 @@ sub backprop {
   my $grad_last_outputs_to_activate_func = array_sigmoid_derivative($last_outputs);
   
   # 損失関数の微小変化 / 最後に活性化された出力の微小変化
-  # my $grad_last_activate_outputs_to_softmax_cost_func = softmax_cross_entropy_cost_derivative($last_activate_outputs, $desired_outputs);
-  my $grad_last_activate_outputs_to_softmax_cost_func = cross_entropy_cost_derivative($last_activate_outputs, $desired_outputs);
+  my $grad_last_activate_outputs_to_cost_func = cross_entropy_cost_derivative($last_activate_outputs, $desired_outputs);
 
   # 損失関数の微小変化 / 最後の出力の微小変化 (合成微分)
-  my $grad_last_outputs_to_cost_func = array_mul($grad_last_outputs_to_activate_func, $grad_last_activate_outputs_to_softmax_cost_func);
+  my $grad_last_outputs_to_cost_func = array_mul($grad_last_outputs_to_activate_func, $grad_last_activate_outputs_to_cost_func);
 
   # 損失関数の微小変化 / 最終の層のバイアスの微小変化
   my $last_biase_grads = $grad_last_outputs_to_cost_func;
@@ -534,48 +529,6 @@ sub array_sigmoid_derivative {
   return $nums_out;
 }
 
-# ReLU関数
-sub relu {
-  my ($x) = @_;
-  
-  my $relu = $x * ($x > 0.0);
-  
-  return $relu;
-}
-
-# ReLU関数の導関数
-sub relu_derivative {
-  my ($x) = @_;
-  
-  my $relu_derivative = 1 * ($x > 0.0);
-  
-  return $relu_derivative;
-}
-
-# 配列の各要素にReLU関数を適用する
-sub array_relu {
-  my ($nums) = @_;
-  
-  my $nums_out = [];
-  for (my $i = 0; $i < @$nums; $i++) {
-    $nums_out->[$i] = relu($nums->[$i]);
-  }
-  
-  return $nums_out;
-}
-
-# 配列の各要素にReLU関数の導関数を適用する
-sub array_relu_derivative {
-  my ($nums) = @_;
-  
-  my $nums_out = [];
-  for (my $i = 0; $i < @$nums; $i++) {
-    $nums_out->[$i] = relu_derivative($nums->[$i]);
-  }
-  
-  return $nums_out;
-}
-
 # クロスエントロピーコスト
 sub cross_entropy_cost {
   my ($vec_a, $vec_y) = @_;
@@ -774,6 +727,7 @@ sub mat_transpose {
   return $mat_trans;
 }
 
+# 配列の値を、一つの値で除算
 sub array_div_scalar {
   my ($nums, $scalar_num) = @_;
   
@@ -783,37 +737,6 @@ sub array_div_scalar {
   }
   
   return $nums_out;
-}
-
-# softmax関数
-sub softmax {
-  my ($nums) = @_;
-  
-  my $exp_total = 0;
-  for (my $i = 0; $i < @$nums; $i++) {
-    $exp_total += exp($nums->[$i]);
-  }
-  
-  my $nums_out = [];
-  for (my $i = 0; $i < @$nums; $i++) {
-    $nums_out->[$i] = exp($nums->[$i]) / $exp_total;
-  }
-  
-  return $nums_out;
-}
-
-# softmaxクロスエントロピー誤差の導関数
-sub softmax_cross_entropy_cost_derivative {
-  my ($softmax_outputs, $desired_outputs) = @_;
-  
-  my $length = @$softmax_outputs;
-  
-  my $softmax_cross_entropy_cost_derivative = [];
-  for (my $i = 0; $i < @$softmax_outputs; $i++) {
-    $softmax_cross_entropy_cost_derivative->[$i] = ($softmax_outputs->[$i] - $desired_outputs->[$i]) / $length;
-  }
-  
-  return $softmax_cross_entropy_cost_derivative;
 }
 
 # 配列を行列に変換
