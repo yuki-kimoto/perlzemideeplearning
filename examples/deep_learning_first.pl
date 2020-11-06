@@ -325,10 +325,10 @@ sub backprop {
   my $last_biase_grads = $grad_last_outputs_to_cost_func;
   
   # 損失関数の微小変化 / 最終の層の重みの微小変化
-  my $last_biase_grads_mat = mat_new($last_biase_grads, scalar @$last_biase_grads, 1);
+  my $last_biase_grads_mat = array_to_mat($last_biase_grads);
   my $last_inputs = $inputs_in_m_to_n_funcs->[@$inputs_in_m_to_n_funcs - 1];
-  my $last_inputs_transpose_mat = mat_new($last_inputs, 1, scalar @$last_inputs);
-  my $last_weight_grads_mat = mat_mul($last_biase_grads_mat, $last_inputs_transpose_mat);
+  my $last_inputs_mat_transposed = array_to_mat_transposed($last_inputs);
+  my $last_weight_grads_mat = mat_mul($last_biase_grads_mat, $last_inputs_mat_transposed);
   
   $biase_grads_in_m_to_n_funcs->[@$biase_grads_in_m_to_n_funcs - 1] = $last_biase_grads;
   $weight_grads_mat_in_m_to_n_funcs->[@$biase_grads_in_m_to_n_funcs - 1] = $last_weight_grads_mat;
@@ -341,10 +341,10 @@ sub backprop {
     # 損失関数の微小変化 / この層のバイアスの微小変化(バックプロパゲーションで求める)
     # 次の層の重みの転置行列とバイアスの傾きをかけて、それぞれの要素に、活性化関数の導関数をかける
     my $forword_weights_mat = $m_to_n_func_infos->[$m_to_n_func_index + 1]{weights_mat};
-    my $forword_weights_mat_transpose = mat_transpose($forword_weights_mat);
+    my $forword_weights_mat_transposed = mat_transpose($forword_weights_mat);
     my $forword_biase_grads = $biase_grads_in_m_to_n_funcs->[$m_to_n_func_index + 1];
-    my $forword_biase_grads_mat = mat_new($forword_biase_grads, scalar @$forword_biase_grads, 1);
-    my $mul_forword_weights_transpose_mat_forword_biase_grads_mat = mat_mul($forword_weights_mat_transpose, $forword_biase_grads_mat);
+    my $forword_biase_grads_mat = array_to_mat($forword_biase_grads);
+    my $mul_forword_weights_transpose_mat_forword_biase_grads_mat = mat_mul($forword_weights_mat_transposed, $forword_biase_grads_mat);
     my $mul_forword_weights_transpose_mat_forword_biase_grads_mat_values = $mul_forword_weights_transpose_mat_forword_biase_grads_mat->{values};
     my $grads_outputs_to_array_sigmoid = array_sigmoid_derivative($outputs);
     my $biase_grads = array_mul($mul_forword_weights_transpose_mat_forword_biase_grads_mat_values, $grads_outputs_to_array_sigmoid);
@@ -352,10 +352,10 @@ sub backprop {
     $biase_grads_in_m_to_n_funcs->[$m_to_n_func_index] = $biase_grads;
     
     # 損失関数の微小変化 / この層の重みの微小変化(バックプロパゲーションで求める)
-    my $biase_grads_mat = mat_new($biase_grads, scalar @$biase_grads, 1);
+    my $biase_grads_mat = array_to_mat($biase_grads);
     my $inputs = $inputs_in_m_to_n_funcs->[$m_to_n_func_index];
-    my $inputs_mat_transpose = mat_new($inputs, 1, scalar @$inputs);
-    my $weights_grads_mat = mat_mul($biase_grads_mat, $inputs_mat_transpose);
+    my $inputs_mat_transposed = array_to_mat_transposed($inputs);
+    my $weights_grads_mat = mat_mul($biase_grads_mat, $inputs_mat_transposed);
     
     $weight_grads_mat_in_m_to_n_funcs->[$m_to_n_func_index] = $weights_grads_mat;
   }
@@ -814,4 +814,34 @@ sub softmax_cross_entropy_cost_derivative {
   }
   
   return $softmax_cross_entropy_cost_derivative;
+}
+
+# 配列を行列に変換
+sub array_to_mat {
+  my ($values) = @_;
+  
+  my $rows_length = @$values;
+  
+  my $mat = {
+    rows_length => $rows_length,
+    columns_length => 1,
+    values => $values,
+  };
+  
+  return $mat;
+}
+
+# 配列を転置された行列に変換
+sub array_to_mat_transposed {
+  my ($values) = @_;
+  
+  my $rows_length = @$values;
+  
+  my $mat = {
+    rows_length => 1,
+    columns_length => $rows_length,
+    values => $values,
+  };
+  
+  return $mat;
 }
