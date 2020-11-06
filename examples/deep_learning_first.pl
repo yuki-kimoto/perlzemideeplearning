@@ -158,13 +158,13 @@ for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
     }
     
     for my $training_data_index (@indexed_for_mini_batch) {
-      # バックプロパゲーションを使って重みとバイアスの損失関数に関する傾きを取得
-      my $m_to_n_func_grad_infos = backprop($m_to_n_func_infos, $mnist_train_image_info, $mnist_train_label_info, $training_data_index);
+      # 逆誤差伝播法を使って重みとバイアスの損失関数に対する傾きを取得
+      my $m_to_n_func_grad_infos = calculate_biase_and_weight_grads_to_cost_func_by_backprop($m_to_n_func_infos, $mnist_train_image_info, $mnist_train_label_info, $training_data_index);
       
-      # バイアスの損失関数に関する傾き
+      # バイアスの損失関数に対する傾き
       my $biase_grads = $m_to_n_func_grad_infos->{biases};
       
-      # 重みの損失関数に関する傾き
+      # 重みの損失関数に対する傾き
       my $weight_grads_mat = $m_to_n_func_grad_infos->{weights_mat};
 
       # ミニバッチにおける各変換関数のバイアスの傾きの合計とミニバッチにおける各変換関数の重みの傾きを加算
@@ -203,8 +203,8 @@ sub update_params {
 
 my $count = 0;
 
-# バックプロパゲーション
-sub backprop {
+# 逆誤差伝播法を使ってすべての重みとバイアスの損失関数に対する傾きを求める
+sub calculate_biase_and_weight_grads_to_cost_func_by_backprop {
   my ($m_to_n_func_infos, $mnist_train_image_info, $mnist_train_label_info, $training_data_index) = @_;
   
   my $first_inputs_length = $m_to_n_func_infos->[0]{inputs_length};
@@ -218,7 +218,6 @@ sub backprop {
   
   # 期待される出力を確率分布化する
   my $label_number = $mnist_train_label_info->{label_numbers}[$training_data_index];
-  
   my $desired_outputs = probabilize_desired_outputs($label_number);
   
   # 各変換関数のバイアスの傾き
@@ -246,7 +245,7 @@ sub backprop {
   my $outputs_in_m_to_n_funcs = [];
   
   # 入力層の入力から出力層の出力を求める
-  # バックプロパゲーションのために各層の出力と活性化された出力を保存
+  # 逆誤差伝播法のために各層の出力と活性化された出力を保存
   for (my $m_to_n_func_index = 0; $m_to_n_func_index < @$m_to_n_func_infos; $m_to_n_func_index++) {
     my $cur_inputs = $inputs_in_m_to_n_funcs->[-1];
     my $inputs_length = $m_to_n_func_infos->[$m_to_n_func_index]{inputs_length};
@@ -277,10 +276,10 @@ sub backprop {
     # 活性化された出力 - 出力に活性化関数を適用
     my $activate_outputs = array_sigmoid($outputs);
     
-    # バックプロパゲーションのために出力を保存
+    # 逆誤差伝播法のために出力を保存
     push @$outputs_in_m_to_n_funcs, $outputs;
     
-    # バックプロパゲーションのために次の入力を保存
+    # 逆誤差伝播法のために次の入力を保存
     push @$inputs_in_m_to_n_funcs, $activate_outputs;
   }
 
@@ -333,7 +332,7 @@ sub backprop {
     # 活性化された出力の微小変化 / 出力の微小変化
     my $outputs = $outputs_in_m_to_n_funcs->[$m_to_n_func_index];
 
-    # 損失関数の微小変化 / この層のバイアスの微小変化(バックプロパゲーションで求める)
+    # 損失関数の微小変化 / この層のバイアスの微小変化(逆誤差伝播法で求める)
     # 次の層の重みの転置行列とバイアスの傾きをかけて、それぞれの要素に、活性化関数の導関数をかける
     my $forword_weights_mat = $m_to_n_func_infos->[$m_to_n_func_index + 1]{weights_mat};
     my $forword_weights_mat_transposed = mat_transpose($forword_weights_mat);
@@ -346,7 +345,7 @@ sub backprop {
 
     $biase_grads_in_m_to_n_funcs->[$m_to_n_func_index] = $biase_grads;
     
-    # 損失関数の微小変化 / この層の重みの微小変化(バックプロパゲーションで求める)
+    # 損失関数の微小変化 / この層の重みの微小変化(逆誤差伝播法で求める)
     my $biase_grads_mat = array_to_mat($biase_grads);
     my $inputs = $inputs_in_m_to_n_funcs->[$m_to_n_func_index];
     my $inputs_mat_transposed = array_to_mat_transposed($inputs);
