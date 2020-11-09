@@ -230,10 +230,10 @@ sub calculate_biase_and_weight_grads_to_cost_func_by_backprop {
   my $desired_outputs = probabilize_desired_outputs($label_number);
   
   # 各変換関数のバイアスの傾き
-  my $biase_grads_in_m_to_n_funcs = [];
+  my $grads_biase_in_m_to_n_funcs = [];
   
   # 各変換関数の重みの傾き
-  my $weight_grads_mat_in_m_to_n_funcs = [];
+  my $grads_weight_mat_in_m_to_n_funcs = [];
   
   # バイアスの傾きと重みの傾きの初期化
   for (my $m_to_n_func_index = 0; $m_to_n_func_index < @$m_to_n_func_infos; $m_to_n_func_index++) {
@@ -241,10 +241,10 @@ sub calculate_biase_and_weight_grads_to_cost_func_by_backprop {
     my $outputs_length = $m_to_n_func_infos->[$m_to_n_func_index]{outputs_length};
 
     # バイアスの傾きを0で初期化
-    $biase_grads_in_m_to_n_funcs->[$m_to_n_func_index] = array_new_zero($outputs_length);
+    $grads_biase_in_m_to_n_funcs->[$m_to_n_func_index] = array_new_zero($outputs_length);
 
     # 重みの傾きを0で初期化
-    $weight_grads_mat_in_m_to_n_funcs->[$m_to_n_func_index] = mat_new_zero($outputs_length, $inputs_length);
+    $grads_weight_mat_in_m_to_n_funcs->[$m_to_n_func_index] = mat_new_zero($outputs_length, $inputs_length);
   }
 
   # 各層の入力
@@ -315,26 +315,29 @@ sub calculate_biase_and_weight_grads_to_cost_func_by_backprop {
   my $match_rate = $answer_match_count / $total_count;
   print "Match Rate: " . sprintf("%.02f", 100 * $match_rate) . "%\n";
   
-  # 活性化された出力の微小変化 / 最後の出力の微小変化 
-  my $grad_last_outputs_to_activate_func = array_sigmoid_derivative($last_outputs);
-  
-  # 損失関数の微小変化 / 最後に活性化された出力の微小変化
+  # 「最後の活性化された出力」に対する「損失関数」の傾き
   my $grad_last_activate_outputs_to_cost_func = cross_entropy_cost_derivative($last_activate_outputs, $desired_outputs);
 
-  # 損失関数の微小変化 / 最後の出力の微小変化 (合成微分)
+  # 「最後の出力」に対する「最後の活性化された出力」の傾き
+  my $grad_last_outputs_to_activate_func = array_sigmoid_derivative($last_outputs);
+  
+  # 「最後の出力」に対する「損失関数」の傾き (合成微分)
   my $grad_last_outputs_to_cost_func = array_mul($grad_last_outputs_to_activate_func, $grad_last_activate_outputs_to_cost_func);
 
-  # 損失関数の微小変化 / 最終の層のバイアスの微小変化
-  my $last_biase_grads = $grad_last_outputs_to_cost_func;
+  # 「最後のmからnの変換関数のバイアス」に対する「損失関数」の傾き
+  my $grads_last_biase_to_cost_func = $grad_last_outputs_to_cost_func;
+  my $grads_last_biase_to_cost_func_mat = array_to_mat($grads_last_biase_to_cost_func);
   
-  # 損失関数の微小変化 / 最終の層の重みの微小変化
-  my $last_biase_grads_mat = array_to_mat($last_biase_grads);
+  # 「最後のmからnへの変換関数の重み」に対する「損失関数」の傾き
   my $last_inputs = $inputs_in_m_to_n_funcs->[@$inputs_in_m_to_n_funcs - 1];
   my $last_inputs_mat_transposed = array_to_mat_transposed($last_inputs);
-  my $last_weight_grads_mat = mat_mul($last_biase_grads_mat, $last_inputs_mat_transposed);
+  my $grads_last_weight_mat = mat_mul($grads_last_biase_to_cost_func_mat, $last_inputs_mat_transposed);
   
-  $biase_grads_in_m_to_n_funcs->[@$biase_grads_in_m_to_n_funcs - 1] = $last_biase_grads;
-  $weight_grads_mat_in_m_to_n_funcs->[@$biase_grads_in_m_to_n_funcs - 1] = $last_weight_grads_mat;
+  # バイアスに関する傾きを保存
+  $grads_biase_in_m_to_n_funcs->[@$grads_biase_in_m_to_n_funcs - 1] = $grads_last_biase_to_cost_func;
+  
+  # 重みに関数傾きを保存
+  $grads_weight_mat_in_m_to_n_funcs->[@$grads_biase_in_m_to_n_funcs - 1] = $grads_last_weight_mat;
 
   # 最後の重みとバイアスの変換より一つ前から始める
   for (my $m_to_n_func_index = @$m_to_n_func_infos - 2; $m_to_n_func_index >= 0; $m_to_n_func_index--) {
@@ -345,14 +348,14 @@ sub calculate_biase_and_weight_grads_to_cost_func_by_backprop {
     # 次の層の重みの転置行列とバイアスの傾きをかけて、それぞれの要素に、活性化関数の導関数をかける
     my $next_weights_mat = $m_to_n_func_infos->[$m_to_n_func_index + 1]{weights_mat};
     my $next_weights_mat_transposed = mat_transpose($next_weights_mat);
-    my $next_biase_grads = $biase_grads_in_m_to_n_funcs->[$m_to_n_func_index + 1];
+    my $next_biase_grads = $grads_biase_in_m_to_n_funcs->[$m_to_n_func_index + 1];
     my $next_biase_grads_mat = array_to_mat($next_biase_grads);
     my $mul_forword_weights_transpose_mat_forword_biase_grads_mat = mat_mul($next_weights_mat_transposed, $next_biase_grads_mat);
     my $mul_forword_weights_transpose_mat_forword_biase_grads_mat_values = $mul_forword_weights_transpose_mat_forword_biase_grads_mat->{values};
     my $grads_outputs_to_array_sigmoid = array_sigmoid_derivative($outputs);
     my $biase_grads = array_mul($mul_forword_weights_transpose_mat_forword_biase_grads_mat_values, $grads_outputs_to_array_sigmoid);
 
-    $biase_grads_in_m_to_n_funcs->[$m_to_n_func_index] = $biase_grads;
+    $grads_biase_in_m_to_n_funcs->[$m_to_n_func_index] = $biase_grads;
     
     # 損失関数の微小変化 / この層の重みの微小変化(逆誤差伝播法で求める)
     my $biase_grads_mat = array_to_mat($biase_grads);
@@ -360,12 +363,12 @@ sub calculate_biase_and_weight_grads_to_cost_func_by_backprop {
     my $inputs_mat_transposed = array_to_mat_transposed($inputs);
     my $weights_grads_mat = mat_mul($biase_grads_mat, $inputs_mat_transposed);
     
-    $weight_grads_mat_in_m_to_n_funcs->[$m_to_n_func_index] = $weights_grads_mat;
+    $grads_weight_mat_in_m_to_n_funcs->[$m_to_n_func_index] = $weights_grads_mat;
   }
 
   my $m_to_n_func_grad_infos = {};
-  $m_to_n_func_grad_infos->{biases} = $biase_grads_in_m_to_n_funcs;
-  $m_to_n_func_grad_infos->{weights_mat} = $weight_grads_mat_in_m_to_n_funcs;
+  $m_to_n_func_grad_infos->{biases} = $grads_biase_in_m_to_n_funcs;
+  $m_to_n_func_grad_infos->{weights_mat} = $grads_weight_mat_in_m_to_n_funcs;
   
   return $m_to_n_func_grad_infos;
 }
