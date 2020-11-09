@@ -296,10 +296,10 @@ sub calculate_biase_and_weight_grads_to_cost_func_by_backprop {
   # 最後の出力
   my $last_outputs = $outputs_in_m_to_n_funcs->[-1];
   
-  # 最後の活性化された出力
+  # 最後の活性化された出力(最後に追加されたものは次の入力にならないのでポップする)
   my $last_activate_outputs = pop @$inputs_in_m_to_n_funcs;
   
-  # 誤差
+  # 誤差の指標となる損失関数
   my $cost = cross_entropy_cost($last_activate_outputs, $desired_outputs);
   print "Cost: " . sprintf("%.3f", $cost) . "\n";
   
