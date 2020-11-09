@@ -343,11 +343,11 @@ sub calculate_biase_and_weight_grads_to_cost_func_by_backprop {
 
     # 損失関数の微小変化 / この層のバイアスの微小変化(逆誤差伝播法で求める)
     # 次の層の重みの転置行列とバイアスの傾きをかけて、それぞれの要素に、活性化関数の導関数をかける
-    my $forword_weights_mat = $m_to_n_func_infos->[$m_to_n_func_index + 1]{weights_mat};
-    my $forword_weights_mat_transposed = mat_transpose($forword_weights_mat);
-    my $forword_biase_grads = $biase_grads_in_m_to_n_funcs->[$m_to_n_func_index + 1];
-    my $forword_biase_grads_mat = array_to_mat($forword_biase_grads);
-    my $mul_forword_weights_transpose_mat_forword_biase_grads_mat = mat_mul($forword_weights_mat_transposed, $forword_biase_grads_mat);
+    my $next_weights_mat = $m_to_n_func_infos->[$m_to_n_func_index + 1]{weights_mat};
+    my $next_weights_mat_transposed = mat_transpose($next_weights_mat);
+    my $next_biase_grads = $biase_grads_in_m_to_n_funcs->[$m_to_n_func_index + 1];
+    my $next_biase_grads_mat = array_to_mat($next_biase_grads);
+    my $mul_forword_weights_transpose_mat_forword_biase_grads_mat = mat_mul($next_weights_mat_transposed, $next_biase_grads_mat);
     my $mul_forword_weights_transpose_mat_forword_biase_grads_mat_values = $mul_forword_weights_transpose_mat_forword_biase_grads_mat->{values};
     my $grads_outputs_to_array_sigmoid = array_sigmoid_derivative($outputs);
     my $biase_grads = array_mul($mul_forword_weights_transpose_mat_forword_biase_grads_mat_values, $grads_outputs_to_array_sigmoid);
