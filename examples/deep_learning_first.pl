@@ -476,25 +476,6 @@ sub array_create_xavier_init_value {
   return $nums_out;
 }
 
-# Heの初期値を取得
-sub create_he_init_value {
-  my ($inputs_length) = @_;
-  
-  return randn(0, sqrt(2 / $inputs_length));
-}
-
-# 配列の各要素にHeの初期値を取得を適用する
-sub array_create_he_init_value {
-  my ($array_length, $inputs_length) = @_;
-  
-  my $nums_out = [];
-  for (my $i = 0; $i < $array_length; $i++) {
-    $nums_out->[$i] = create_he_init_value($inputs_length);
-  }
-  
-  return $nums_out;
-}
-
 # シグモイド関数
 sub sigmoid {
   my ($x) = @_;
