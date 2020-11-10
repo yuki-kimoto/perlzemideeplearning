@@ -196,13 +196,13 @@ sub update_params {
     my $weights_mat_values = $m_to_n_func_infos->[$m_to_n_func_index]{weights_mat}{values};
     my $weight_grad_totals_mat_values = $m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{weight_grad_totals_mat}{values};
     
-    # バイアスの更新 - パラメータ更新アルゴリズムにはAdamを使用
+    # バイアスの更新
     for (my $biase_index = 0; $biase_index < @$biases; $biase_index++) {
       my $update_diff = ($learning_rate / $mini_batch_size) * $biase_grad_totals->[$biase_index];
       $biases->[$biase_index] -= $update_diff;
     }
     
-    # 重みの更新 - パラメータ更新アルゴリズムにはAdamを使用
+    # 重みの更新
     for (my $weights_mat_values_index = 0; $weights_mat_values_index < @$weights_mat_values; $weights_mat_values_index++) {
       my $update_diff = ($learning_rate / $mini_batch_size) * $weight_grad_totals_mat_values->[$weights_mat_values_index];
       $weights_mat_values->[$weights_mat_values_index] -= $update_diff;
