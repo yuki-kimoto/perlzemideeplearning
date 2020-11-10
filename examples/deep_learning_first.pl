@@ -151,31 +151,27 @@ for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
       my $weights_mat = $m_to_n_func_info->{weights_mat};
       
       # ミニバッチにおける各変換関数のバイアスの傾きの合計を0で初期化して作成
-      $m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{biase_grad_totals} = array_new_zero(scalar @{$m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{biase_grad_totals}});
+      $m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{biase_grad_totals}
+        = array_new_zero(scalar @{$m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{biase_grad_totals}});
 
       # ミニバッチにおける各変換関数の重みの傾きの合計を0で初期化して作成
-      $m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{weight_grad_totals_mat}{values} = array_new_zero(scalar @{$m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{weight_grad_totals_mat}{values}});
+      $m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{weight_grad_totals_mat}{values}
+        = array_new_zero(scalar @{$m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{weight_grad_totals_mat}{values}});
     }
     
     for my $training_data_index (@indexed_for_mini_batch) {
       # 逆誤差伝播法を使って重みとバイアスの損失関数に対する傾きを取得
-      my $m_to_n_func_grad_infos = calculate_biase_and_weight_grads_to_cost_func_by_backprop($m_to_n_func_infos, $mnist_train_image_info, $mnist_train_label_info, $training_data_index);
+      my $grads_in_m_to_n_funcs = calculate_biase_and_weight_grads_to_cost_func_by_backprop($m_to_n_func_infos, $mnist_train_image_info, $mnist_train_label_info, $training_data_index);
       
-      # バイアスの損失関数に対する傾き
-      my $grads_biase = $m_to_n_func_grad_infos->{biases};
-      
-      # 重みの損失関数に対する傾き
-      my $weight_grads_mat = $m_to_n_func_grad_infos->{weights_mat};
-
       # ミニバッチにおける各変換関数のバイアスの傾きの合計とミニバッチにおける各変換関数の重みの傾きを加算
       for (my $m_to_n_func_index = 0; $m_to_n_func_index < @$m_to_n_func_mini_batch_infos; $m_to_n_func_index++) {
         my $m_to_n_func_info = $m_to_n_func_infos->[$m_to_n_func_index];
         
         # ミニバッチにおける各変換関数のバイアスの傾きを加算
-        array_add_inplace($m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{biase_grad_totals}, $grads_biase->[$m_to_n_func_index]);
+        array_add_inplace($m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{biase_grad_totals}, $grads_in_m_to_n_funcs->[$m_to_n_func_index]{biases});
 
         # ミニバッチにおける各変換関数の重みの傾きを加算
-        array_add_inplace($m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{weight_grad_totals_mat}{values}, $weight_grads_mat->[$m_to_n_func_index]{values});
+        array_add_inplace($m_to_n_func_mini_batch_infos->[$m_to_n_func_index]{weight_grad_totals_mat}{values}, $grads_in_m_to_n_funcs->[$m_to_n_func_index]{weights_mat}{values});
       }
     }
 
@@ -230,10 +226,7 @@ sub calculate_biase_and_weight_grads_to_cost_func_by_backprop {
   my $desired_outputs = probabilize_desired_outputs($label_number);
   
   # 各変換関数のバイアスの傾き
-  my $grads_biase_in_m_to_n_funcs = [];
-  
-  # 各変換関数の重みの傾き
-  my $grads_weight_mat_in_m_to_n_funcs = [];
+  my $grads_in_m_to_n_funcs = [];
   
   # バイアスの傾きと重みの傾きの初期化
   for (my $m_to_n_func_index = 0; $m_to_n_func_index < @$m_to_n_func_infos; $m_to_n_func_index++) {
@@ -241,10 +234,10 @@ sub calculate_biase_and_weight_grads_to_cost_func_by_backprop {
     my $outputs_length = $m_to_n_func_infos->[$m_to_n_func_index]{outputs_length};
 
     # バイアスの傾きを0で初期化
-    $grads_biase_in_m_to_n_funcs->[$m_to_n_func_index] = array_new_zero($outputs_length);
+    $grads_in_m_to_n_funcs->[$m_to_n_func_index]{biases} = array_new_zero($outputs_length);
 
     # 重みの傾きを0で初期化
-    $grads_weight_mat_in_m_to_n_funcs->[$m_to_n_func_index] = mat_new_zero($outputs_length, $inputs_length);
+    $grads_in_m_to_n_funcs->[$m_to_n_func_index]{weights_mat} = mat_new_zero($outputs_length, $inputs_length);
   }
 
   # 各層の入力
@@ -334,10 +327,10 @@ sub calculate_biase_and_weight_grads_to_cost_func_by_backprop {
   my $grads_last_weight_mat = mat_mul($grads_last_biase_to_cost_func_mat, $last_inputs_mat_transposed);
   
   # バイアスに関する傾きを保存
-  $grads_biase_in_m_to_n_funcs->[@$grads_biase_in_m_to_n_funcs - 1] = $grads_last_biase_to_cost_func;
+  $grads_in_m_to_n_funcs->[@$grads_in_m_to_n_funcs - 1]{biases} = $grads_last_biase_to_cost_func;
   
   # 重みに関数傾きを保存
-  $grads_weight_mat_in_m_to_n_funcs->[@$grads_biase_in_m_to_n_funcs - 1] = $grads_last_weight_mat;
+  $grads_in_m_to_n_funcs->[@$grads_in_m_to_n_funcs - 1]{weights_mat} = $grads_last_weight_mat;
 
   # 最後のより一つ前のmからnへの変換関数から逆向きにループする
   for (my $m_to_n_func_index = @$m_to_n_func_infos - 2; $m_to_n_func_index >= 0; $m_to_n_func_index--) {
@@ -356,26 +349,22 @@ sub calculate_biase_and_weight_grads_to_cost_func_by_backprop {
     
     # 「mからnへの変換関数のバイアス」に対する「損失関数」の傾き
     # (「出力」に対する「活性化された出力」の傾きと、すでに求めている「次のmからnの変換関数のバイアス」に対する「損失関数」の傾きを利用。)
-    my $next_grads_biase = $grads_biase_in_m_to_n_funcs->[$m_to_n_func_index + 1];
+    my $next_grads_biase = $grads_in_m_to_n_funcs->[$m_to_n_func_index + 1]{biases};
     my $next_grads_biase_mat = array_to_mat($next_grads_biase);
     my $mul_next_weights_transpose_mat_next_grads_biase_mat = mat_mul($next_weights_mat_transposed, $next_grads_biase_mat);
     my $mul_next_weights_transpose_mat_next_grads_biase_mat_values = $mul_next_weights_transpose_mat_next_grads_biase_mat->{values};
     my $grads_biase = array_mul($mul_next_weights_transpose_mat_next_grads_biase_mat_values, $grads_outputs_to_activate_outputs);
-    $grads_biase_in_m_to_n_funcs->[$m_to_n_func_index] = $grads_biase;
+    $grads_in_m_to_n_funcs->[$m_to_n_func_index]{biases} = $grads_biase;
     
     # 「mからnへの変換関数の重み」に対する「損失関数」の傾き
     my $grads_biase_mat = array_to_mat($grads_biase);
     my $inputs = $inputs_in_m_to_n_funcs->[$m_to_n_func_index];
     my $inputs_mat_transposed = array_to_mat_transposed($inputs);
     my $grads_weights_mat = mat_mul($grads_biase_mat, $inputs_mat_transposed);
-    $grads_weight_mat_in_m_to_n_funcs->[$m_to_n_func_index] = $grads_weights_mat;
+    $grads_in_m_to_n_funcs->[$m_to_n_func_index]{weights_mat} = $grads_weights_mat;
   }
-
-  my $m_to_n_func_grad_infos = {};
-  $m_to_n_func_grad_infos->{biases} = $grads_biase_in_m_to_n_funcs;
-  $m_to_n_func_grad_infos->{weights_mat} = $grads_weight_mat_in_m_to_n_funcs;
   
-  return $m_to_n_func_grad_infos;
+  return $grads_in_m_to_n_funcs;
 }
 
 # 配列の中で最大値のインデックスを求める。同じ数の場合は、最初の方を返す
