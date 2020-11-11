@@ -444,25 +444,6 @@ sub randn {
   return ($sigma * sqrt(-2 * log($r1)) * sin(2 * 3.14159265359 * $r2)) + $m;
 }
 
-# Xivierの初期値を作成
-sub create_xavier_init_value {
-  my ($inputs_length) = @_;
-  
-  return randn(0, sqrt(1 / $inputs_length));
-}
-
-# 配列の各要素にXivierの初期値を取得を適用する
-sub array_create_xavier_init_value {
-  my ($array_length, $inputs_length) = @_;
-  
-  my $nums_out = [];
-  for (my $i = 0; $i < $array_length; $i++) {
-    $nums_out->[$i] = create_xavier_init_value($inputs_length);
-  }
-  
-  return $nums_out;
-}
-
 # Heの初期値を取得
 sub create_he_init_value {
   my ($inputs_length) = @_;
@@ -477,48 +458,6 @@ sub array_create_he_init_value {
   my $nums_out = [];
   for (my $i = 0; $i < $array_length; $i++) {
     $nums_out->[$i] = create_he_init_value($inputs_length);
-  }
-  
-  return $nums_out;
-}
-
-# シグモイド関数
-sub sigmoid {
-  my ($x) = @_;
-  
-  my $sigmoid = 1.0 / (1.0 + exp(-$x));
-  
-  return $sigmoid;
-}
-
-# シグモイド関数の導関数
-sub sigmoid_derivative {
-  my ($x) = @_;
-  
-  my $sigmoid_derivative = sigmoid($x) * (1 - sigmoid($x));
-  
-  return $sigmoid_derivative;
-}
-
-# 配列の各要素にシグモイド関数を適用する
-sub array_sigmoid {
-  my ($nums) = @_;
-  
-  my $nums_out = [];
-  for (my $i = 0; $i < @$nums; $i++) {
-    $nums_out->[$i] = sigmoid($nums->[$i]);
-  }
-  
-  return $nums_out;
-}
-
-# 配列の各要素にシグモイド関数の導関数を適用する
-sub array_sigmoid_derivative {
-  my ($nums) = @_;
-  
-  my $nums_out = [];
-  for (my $i = 0; $i < @$nums; $i++) {
-    $nums_out->[$i] = sigmoid_derivative($nums->[$i]);
   }
   
   return $nums_out;
@@ -764,6 +703,7 @@ sub mat_transpose {
   return $mat_trans;
 }
 
+# 配列の値を、一つの値で除算
 sub array_div_scalar {
   my ($nums, $scalar_num) = @_;
   
