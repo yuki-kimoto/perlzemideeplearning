@@ -4,6 +4,7 @@ package SPVM::MyAIUtil : precompile {
   use SPVM::Util (crand, sprintf);
   use SPVM::List;
   use SPVM::Hash;
+  use SPVM::MyAIUtil::FloatMatrix;
 
   # 総実行回数
   our $TOTAL_COUNT : int;
@@ -723,12 +724,4 @@ package SPVM::MyAIUtil : precompile {
     
     return $softmax_cross_entropy_cost_derivative;
   }
-}
-
-package SPVM::MyAIUtil::FloatMatrix {
-  allow SPVM::MyAIUtil;
-
-  has rows_length : public rw int;
-  has columns_length : public rw int;
-  has values : public rw float[];
 }

@@ -1,0 +1,7 @@
+package SPVM::MyAIUtil::FloatMatrix {
+  allow SPVM::MyAIUtil;
+
+  has rows_length : public rw int;
+  has columns_length : public rw int;
+  has values : public rw float[];
+}
