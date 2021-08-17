@@ -70,7 +70,8 @@
   }
   
   .inside {
-    width:1080px;
+    max-width:1080px;
+    width:100%;
     margin:0 auto;
   }
   /* footer */
@@ -253,6 +254,7 @@
   }
   .side-list {
     box-shadow: 0 0 3px rgba(0,0,0,.1);
+    margin-bottom:30px;
   }
   .side-list-title {
     background:#FDD766;
@@ -281,7 +283,8 @@
     width:100%;
   }
   .side {
-    display:none;
+    width:100%;
+    margin:0;
   }
   .header h1 {
     width:calc(100% - 30px);
