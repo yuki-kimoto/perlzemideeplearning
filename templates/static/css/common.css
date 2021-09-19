@@ -11,18 +11,58 @@
     color:#0000EE;
   }
   
-  /* header */
+  /* ヘッダ */
   .header {
-    margin:0 auto;
-    background:#fff;
-    margin-bottom:15px;
-    border-bottom:5px solid #D9D9D9;
-  }
-  .header h1 {
-    max-width:1030px;
     width:100%;
-    margin-left:auto;
-    margin-right:auto;
+    border-bottom:2px solid #cccccc;
+    margin-bottom:5px;
+    background:white;
+  }
+  .header_main {
+    width:100%;
+    max-width:1030px;
+    display:flex;
+    margin:0 auto;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: “Calibri”,”メイリオ”,Meiryo,”ヒラギノ角ゴ Pro W3″,Hiragino Kaku Gothic Pro,”ＭＳ Ｐゴシック”,sans-serif; 
+  }
+  h1 {
+    font-family: “Calibri”,”メイリオ”,Meiryo,”ヒラギノ角ゴ Pro W3″,Hiragino Kaku Gothic Pro,”ＭＳ Ｐゴシック”,sans-serif; 
+    padding: 5px 15px 9px 15px;
+    color:#333;
+    font-family: "times new roman", "geogia", serif;
+    float:left;
+    width:75%;
+    display:inline-block;
+    padding:5px 10px 7px 10px;
+  }
+  h1 a, h1 a:visited {
+    color:#333;
+    text-decoration:underline;
+    font-weight:bold;
+    letter-spacing:1px;
+    font-size:20px;
+    text-decoration:none;
+  }
+  h1 img {
+    width:40px;
+    vertical-align:-12px;
+    margin-right:10px;
+  }
+  .header_right {
+    width:25%;
+    text-align:right;
+  }
+  .header_right a,.header_right a:visited {
+    display:inline-block;
+    background:#FF4DA0;
+    color:white;
+    text-decoration:none;
+    padding:15px 25px 10px 25px;
+    text-align:center;
+    font-weight:bold;
+    height:100%;
   }
   
   blockquote {
@@ -155,27 +195,6 @@
     line-height:1.5;
   }
   
-  /* side */
-  .side {
-    float:left;
-    width:320px;
-    margin-left:30px;
-    padding-top:16px;
-  }
-  
-  /* tags */
-  h1 {
-    width:100%;
-    font-size:28px;
-    padding:19px 10px 15px 73px;
-    background:url(/images/deeplearning-logo.png) no-repeat 10px 15px;
-    background-size:48px;
-  }
-  h1 a, h1 a:visited {
-    color:white;
-    text-decoration:none;
-    color:#333;
-  }
   h2 {
     font-size:28px;
     margin-bottom:20px;
@@ -254,44 +273,108 @@
   .before-days {
     text-align:center;
   }
+
+  /* サイドバー */
+  .side {
+    float:right;
+    width:320px;
+    padding-top:12px;
+  }
   .side_list {
-    box-shadow: 0 0 3px rgba(0,0,0,.1);
-    margin-bottom:30px;
   }
   .side_list_title {
     background:#FDD766;
     color:white;
     font-weight:bold;
-    padding: 12px 0px 10px 0px;
+    padding: 11px 0px 9px 0px;
     text-align:center;
     border-bottom:none;
   }
+  .side_list_body {
+    text-align:center;
+    letter-spacing:1px;    
+    font-weight:bold;
+    line-height:1.5;
+    font-size:16px;
+  }
+
+  .side_list_image img {
+    width:200px;
+  }
   .side_list ul {
-    border:1px solid #ccc;
+    margin-bottom:30px;
   }
   .side_list li {
     list-style:none;
     background:white;
-    border-bottom:1px solid #E5E5E5;
+    border:1px solid #D0D0DA;
+    border-bottom:none;
     padding:12px 0px 10px 15px;
   }
-  .side li:last-child {
-    border-bottom:none;
+  .side_list li:last-child {
+    border-bottom:1px solid #D0D0DA;
+  }
+  .side_list li:first-child {
+    border-top:none;
   }
 
+  .perlclub_register {
+    width:calc(100% - 30%);
+    max-width:500px;
+    margin:50px auto;
+  }
+  .perlclub_register a {
+    line-height:1.9;
+    text-align:center;
+    font-weight:bold;
+    font-size:19px;
+    display:block;
+    padding:33px 30px;
+    background:#FF4DA0;
+    text-decoration:none;
+    border-radius:5px;
+    color:white;
+  }
+  .perlclub_register a:hover {
+    opacity:0.8;
+  }
+  
+
 /* Tablet and Smart phone */
-@media only screen and (max-width:960px) {
+@media only screen and (max-width:1030px) {
   .content {
-    width:100%;
-  }
-  .side {
-    width:100%;
     margin:0;
+    padding:0;
+    width:100%;
+    height:auto;
+    overflow:visible;
   }
-  .header h1 {
-    width:calc(100% - 30px);
+  .hide-smartphone {
+    display:none;
   }
-  .main {
-    width:calc(100% - 30px);
+  
+  /* ヘッダ */
+  .header_main, h2,h4,h5, p, pre {
+    margin-left:auto;
+    margin-right:auto;
+  }
+  .header_right a,.header_right a:visited {
+    padding:15px 10px 10px 10px;
+  }
+  
+  /* サイドバー */
+  .side {
+    margin:0;
+    padding:0;
+    width:100%;
+    height:auto;
+    overflow:visible;
+  }
+  .side_list li {
+    border-left:none;
+    border-right:none;
+  }
+  .side_list li:last-child {
+    border-bottom:none;
   }
 }
