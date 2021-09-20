@@ -1,5 +1,5 @@
-package SPVM::MyAIUtil::FloatMatrix {
-  allow SPVM::MyAIUtil;
+class MyAIUtil::FloatMatrix {
+  allow MyAIUtil;
 
   has rows_length : public rw int;
   has columns_length : public rw int;

@@ -1,12 +1,10 @@
-package SPVM::MyAIUtil : precompile {
-  use SPVM::Math (expf, sqrtf, logf, sinf);
-  use SPVM::Math (log, sin, sqrt);
-  use SPVM::NumberUtil (crand);
-  use SPVM::StringUtil (sprintf);
-  use SPVM::ArrayUtil;
-  use SPVM::List;
-  use SPVM::Hash;
-  use SPVM::MyAIUtil::FloatMatrix;
+class MyAIUtil : precompile {
+  use Fn (crand, sprintf);
+  use Math (expf, sqrtf, logf, sinf);
+  use Math (log, sin, sqrt);
+  use List;
+  use Hash;
+  use MyAIUtil::FloatMatrix;
 
   # 総実行回数
   our $TOTAL_COUNT : int;
@@ -15,9 +13,9 @@ package SPVM::MyAIUtil : precompile {
   our $ANSWER_MATCH_COUNT : int;
   
   # シャッフルする
-  sub shufflei : int[] ($array_original : int[]) {
+  static method shufflei : int[] ($array_original : int[]) {
     my $size = @$array_original;
-    my $array = SPVM::ArrayUtil->copy_array_int($array_original);
+    my $array = Fn->copy_array_int($array_original);
     for (my $i = 0; $i < $size; $i++) {
       my $j = crand() % $size;
       my $t = $array->[$i];
@@ -27,11 +25,11 @@ package SPVM::MyAIUtil : precompile {
     return $array;
   }
   
-  sub train_deep_network : void ($mnist_train_image_info_spvm : SPVM::Hash, $mnist_train_label_info_spvm : SPVM::Hash,
+  static method train_deep_network : void ($mnist_train_image_info_spvm : Hash, $mnist_train_label_info_spvm : Hash,
     $epoch_count : int, $mini_batch_size : int, $neurons_count_in_layers : int[], $learning_rate : int)
   {
     # 各層のm個の入力をn個の出力に変換する関数の情報。入力数、出力数、バイアス、重み
-    my $m_to_n_func_infos = SPVM::MyAIUtil->init_m_to_n_func_infos($neurons_count_in_layers);
+    my $m_to_n_func_infos = MyAIUtil->init_m_to_n_func_infos($neurons_count_in_layers);
 
     # 訓練データのインデックス(最初の4万枚だけを訓練用データとして利用する。残りの1万枚は検証用データとする)
     my $training_data_indexes = new int[40000];
@@ -41,16 +39,16 @@ package SPVM::MyAIUtil : precompile {
     }
 
     # ミニバッチ単位における各変換関数の情報
-    my $m_to_n_func_mini_batch_infos = SPVM::MyAIUtil->init_m_to_n_func_mini_batch_infos($m_to_n_func_infos);
+    my $m_to_n_func_mini_batch_infos = MyAIUtil->init_m_to_n_func_mini_batch_infos($m_to_n_func_infos);
 
     # エポックの回数だけ訓練セットを実行
     for (my $epoch_index = 0; $epoch_index < $epoch_count; $epoch_index++) {
       
       # 訓練データのインデックスをシャッフル(ランダムに学習させた方が汎用化するらしい)
-      my $training_data_indexes_shuffle = SPVM::MyAIUtil->shufflei($training_data_indexes);
+      my $training_data_indexes_shuffle = MyAIUtil->shufflei($training_data_indexes);
       
       # 確率的勾配降下法を使ってパラメーターを更新
-      SPVM::MyAIUtil->update_params_sgd(
+      MyAIUtil->update_params_sgd(
         $m_to_n_func_mini_batch_infos,
         $m_to_n_func_infos,
         $training_data_indexes_shuffle,
@@ -62,53 +60,53 @@ package SPVM::MyAIUtil : precompile {
     }
   }
   
-  sub update_params_sgd : void ($m_to_n_func_mini_batch_infos : SPVM::List, $m_to_n_func_infos : SPVM::List, $training_data_indexes_shuffle : int[],
-    $mini_batch_size: int, $mnist_train_image_info_spvm : SPVM::Hash, $mnist_train_label_info_spvm : SPVM::Hash, $learning_rate : float) {
+  static method update_params_sgd : void ($m_to_n_func_mini_batch_infos : List, $m_to_n_func_infos : List, $training_data_indexes_shuffle : int[],
+    $mini_batch_size: int, $mnist_train_image_info_spvm : Hash, $mnist_train_label_info_spvm : Hash, $learning_rate : float) {
  
     for (my $training_data_indexes_shuffle_index = 0; $training_data_indexes_shuffle_index < @$training_data_indexes_shuffle; $training_data_indexes_shuffle_index += $mini_batch_size) {
       
       # ミニバッチにおける各変換関数のバイアスの傾きの合計とミニバッチにおける各変換関数の重みの傾きの合計を0で初期化
       for (my $m_to_n_func_index = 0; $m_to_n_func_index < $m_to_n_func_mini_batch_infos->length; $m_to_n_func_index++) {
-        my $m_to_n_func_info = (SPVM::Hash)$m_to_n_func_infos->get($m_to_n_func_index);
+        my $m_to_n_func_info = (Hash)$m_to_n_func_infos->get($m_to_n_func_index);
         my $biases = $m_to_n_func_info->get("biases");
         my $weights_mat = $m_to_n_func_info->get("weights_mat");
         
         # ミニバッチにおける各変換関数のバイアスの傾きの合計を0で初期化して作成
-        my $m_to_n_func_mini_batch_info = (SPVM::Hash)$m_to_n_func_mini_batch_infos->get($m_to_n_func_index);
+        my $m_to_n_func_mini_batch_info = (Hash)$m_to_n_func_mini_batch_infos->get($m_to_n_func_index);
         my $biase_grad_totals = (float[])$m_to_n_func_mini_batch_info->get("biase_grad_totals");
-        $m_to_n_func_mini_batch_info->set(biase_grad_totals => SPVM::MyAIUtil->array_new_zero(scalar @$biase_grad_totals));
+        $m_to_n_func_mini_batch_info->set(biase_grad_totals => MyAIUtil->array_new_zero(scalar @$biase_grad_totals));
         
         # ミニバッチにおける各変換関数の重みの傾きの合計を0で初期化して作成
-        my $weight_grad_totals_mat = (SPVM::MyAIUtil::FloatMatrix)$m_to_n_func_mini_batch_info->get("weight_grad_totals_mat");
-        $weight_grad_totals_mat->set_values(SPVM::MyAIUtil->array_new_zero(scalar @{$weight_grad_totals_mat->values}));
+        my $weight_grad_totals_mat = (MyAIUtil::FloatMatrix)$m_to_n_func_mini_batch_info->get("weight_grad_totals_mat");
+        $weight_grad_totals_mat->set_values(MyAIUtil->array_new_zero(scalar @{$weight_grad_totals_mat->values}));
       }
       
       for (my $mini_batch_index = 0; $mini_batch_index < $mini_batch_size; $mini_batch_index++) {        
         my $training_data_index = $training_data_indexes_shuffle->[$training_data_indexes_shuffle_index + $mini_batch_index];
         
         # バックプロパゲーションを使って重みとバイアスの損失関数に関する傾きを取得
-        my $m_to_n_func_grad_infos = SPVM::MyAIUtil->backprop($m_to_n_func_infos, $mnist_train_image_info_spvm, $mnist_train_label_info_spvm, $training_data_index);
+        my $m_to_n_func_grad_infos = MyAIUtil->backprop($m_to_n_func_infos, $mnist_train_image_info_spvm, $mnist_train_label_info_spvm, $training_data_index);
         
         # バイアスの損失関数に関する傾き
-        my $biase_grads_list = (SPVM::List)$m_to_n_func_grad_infos->get("biases");
+        my $biase_grads_list = (List)$m_to_n_func_grad_infos->get("biases");
         
         # 重みの損失関数に関する傾き
-        my $weight_grads_mat_list = (SPVM::List)$m_to_n_func_grad_infos->get("weights_mat");
+        my $weight_grads_mat_list = (List)$m_to_n_func_grad_infos->get("weights_mat");
 
         # ミニバッチにおける各変換関数のバイアスの傾きの合計とミニバッチにおける各変換関数の重みの傾きを加算
         for (my $m_to_n_func_index = 0; $m_to_n_func_index < $m_to_n_func_mini_batch_infos->length; $m_to_n_func_index++) {
           my $m_to_n_func_info = $m_to_n_func_infos->get($m_to_n_func_index);
           
           # ミニバッチにおける各変換関数のバイアスの傾きを加算
-          my $m_to_n_func_mini_batch_info = (SPVM::Hash)$m_to_n_func_mini_batch_infos->get($m_to_n_func_index);
+          my $m_to_n_func_mini_batch_info = (Hash)$m_to_n_func_mini_batch_infos->get($m_to_n_func_index);
           my $biase_grad_totals = (float[])$m_to_n_func_mini_batch_info->get("biase_grad_totals");
           my $biase_grads = (float[])$biase_grads_list->get($m_to_n_func_index);
-          SPVM::MyAIUtil->array_add_inplace($biase_grad_totals, $biase_grads);
+          MyAIUtil->array_add_inplace($biase_grad_totals, $biase_grads);
 
           # ミニバッチにおける各変換関数の重みの傾きを加算
-          my $weight_grad_totals_mat = (SPVM::MyAIUtil::FloatMatrix)$m_to_n_func_mini_batch_info->get("weight_grad_totals_mat");
-          my $weight_grads_mat = (SPVM::MyAIUtil::FloatMatrix)$weight_grads_mat_list->get($m_to_n_func_index);
-          SPVM::MyAIUtil->array_add_inplace($weight_grad_totals_mat->values, $weight_grads_mat->values);
+          my $weight_grad_totals_mat = (MyAIUtil::FloatMatrix)$m_to_n_func_mini_batch_info->get("weight_grad_totals_mat");
+          my $weight_grads_mat = (MyAIUtil::FloatMatrix)$weight_grads_mat_list->get($m_to_n_func_index);
+          MyAIUtil->array_add_inplace($weight_grad_totals_mat->values, $weight_grads_mat->values);
         }
       }
 
@@ -116,24 +114,24 @@ package SPVM::MyAIUtil : precompile {
       for (my $m_to_n_func_index = 0; $m_to_n_func_index < $m_to_n_func_infos->length; $m_to_n_func_index++) {
         
         # 各変換関数のバイアスを更新(学習率を考慮し、ミニバッチ数で割る)
-        my $m_to_n_func_info = (SPVM::Hash)$m_to_n_func_infos->get($m_to_n_func_index);
+        my $m_to_n_func_info = (Hash)$m_to_n_func_infos->get($m_to_n_func_index);
         my $biases = (float[])$m_to_n_func_info->get("biases");
         
-        my $m_to_n_func_mini_batch_info = (SPVM::Hash)$m_to_n_func_mini_batch_infos->get($m_to_n_func_index);
+        my $m_to_n_func_mini_batch_info = (Hash)$m_to_n_func_mini_batch_infos->get($m_to_n_func_index);
         my $biase_grad_totals = (float[])$m_to_n_func_mini_batch_info->get("biase_grad_totals");
-        SPVM::MyAIUtil->update_params($biases, $biase_grad_totals, $learning_rate, $mini_batch_size);
+        MyAIUtil->update_params($biases, $biase_grad_totals, $learning_rate, $mini_batch_size);
         
         # 各変換関数の重みを更新(学習率を考慮し、傾きの合計をミニバッチ数で、ミニバッチ数で割る)
-        my $weights_mat = (SPVM::MyAIUtil::FloatMatrix)$m_to_n_func_info->get("weights_mat");
-        my $weight_grad_totals_mat = (SPVM::MyAIUtil::FloatMatrix)$m_to_n_func_mini_batch_info->get("weight_grad_totals_mat");
-        SPVM::MyAIUtil->update_params($weights_mat->values, $weight_grad_totals_mat->values, $learning_rate, $mini_batch_size);
+        my $weights_mat = (MyAIUtil::FloatMatrix)$m_to_n_func_info->get("weights_mat");
+        my $weight_grad_totals_mat = (MyAIUtil::FloatMatrix)$m_to_n_func_mini_batch_info->get("weight_grad_totals_mat");
+        MyAIUtil->update_params($weights_mat->values, $weight_grad_totals_mat->values, $learning_rate, $mini_batch_size);
       }
     }
   }
 
-  sub init_m_to_n_func_infos : SPVM::List ($neurons_count_in_layers : int[]) {
+  static method init_m_to_n_func_infos : List ($neurons_count_in_layers : int[]) {
     # 各層のm個の入力をn個の出力に変換する関数の情報。入力数、出力数、バイアス、重み
-    my $m_to_n_func_infos = SPVM::List->new([]);
+    my $m_to_n_func_infos = List->new([]);
 
     # 各層のニューロン数からmからnへの変換関数の情報を作成
     for (my $i = 0; $i < @$neurons_count_in_layers - 1; $i++) {
@@ -141,15 +139,15 @@ package SPVM::MyAIUtil : precompile {
       my $outputs_length = $neurons_count_in_layers->[$i + 1];
       
       # バイアスを0で初期化
-      my $biases = SPVM::MyAIUtil->array_new_zero($outputs_length);
+      my $biases = MyAIUtil->array_new_zero($outputs_length);
 
       # Xivierの初期値で重みを初期化。重みは列優先行列
-      my $weights_mat = SPVM::MyAIUtil->mat_new_zero($outputs_length, $inputs_length);
+      my $weights_mat = MyAIUtil->mat_new_zero($outputs_length, $inputs_length);
       my $weights_length = $weights_mat->rows_length * $weights_mat->columns_length;
-      $weights_mat->set_values(SPVM::MyAIUtil->array_create_xavier_init_value($weights_length, $inputs_length));
+      $weights_mat->set_values(MyAIUtil->array_create_xavier_init_value($weights_length, $inputs_length));
       
       # 変換関数の情報を設定
-      my $m_to_n_func_info = SPVM::Hash->new({});
+      my $m_to_n_func_info = Hash->new({});
       $m_to_n_func_info->set_int(inputs_length => $inputs_length);
       $m_to_n_func_info->set_int(outputs_length => $outputs_length);
       $m_to_n_func_info->set(biases => $biases);
@@ -161,28 +159,28 @@ package SPVM::MyAIUtil : precompile {
     return $m_to_n_func_infos;
   }
 
-  sub init_m_to_n_func_mini_batch_infos : SPVM::List ($m_to_n_func_infos : SPVM::List) {
+  static method init_m_to_n_func_mini_batch_infos : List ($m_to_n_func_infos : List) {
     # ミニバッチ単位における各変換関数の情報
     
-    my $m_to_n_func_mini_batch_infos = SPVM::List->new_len(new object[0], $m_to_n_func_infos->length);
+    my $m_to_n_func_mini_batch_infos = List->new_len(new object[0], $m_to_n_func_infos->length);
 
     # ミニバッチにおける各変換関数のバイアスの傾きの合計とミニバッチにおける各変換関数の重みの傾きの合計を0で初期化して作成
     # メモリ領域を繰り返しつかうためここで初期化
     for (my $m_to_n_func_index = 0; $m_to_n_func_index < $m_to_n_func_infos->length; $m_to_n_func_index++) {
-      my $m_to_n_func_info = (SPVM::Hash)$m_to_n_func_infos->get($m_to_n_func_index);
+      my $m_to_n_func_info = (Hash)$m_to_n_func_infos->get($m_to_n_func_index);
       my $biases = (float[])$m_to_n_func_info->get("biases");
-      my $weights_mat = (SPVM::MyAIUtil::FloatMatrix)$m_to_n_func_info->get("weights_mat");
+      my $weights_mat = (MyAIUtil::FloatMatrix)$m_to_n_func_info->get("weights_mat");
       
       # バイアスの長さ
       my $biases_length = scalar @$biases;
 
       # ミニバッチにおける各変換関数のバイアスの傾きの合計を0で初期化して作成
-      my $biase_grad_totals = SPVM::MyAIUtil->array_new_zero($biases_length);
+      my $biase_grad_totals = MyAIUtil->array_new_zero($biases_length);
 
       # ミニバッチにおける各変換関数の重みの傾きの合計を0で初期化して作成
-      my $weight_grad_totals_mat = SPVM::MyAIUtil->mat_new_zero($weights_mat->rows_length, $weights_mat->columns_length);
+      my $weight_grad_totals_mat = MyAIUtil->mat_new_zero($weights_mat->rows_length, $weights_mat->columns_length);
       
-      my $m_to_n_func_mini_batch_info = SPVM::Hash->new({});
+      my $m_to_n_func_mini_batch_info = Hash->new({});
       $m_to_n_func_mini_batch_info->set(biase_grad_totals => $biase_grad_totals);
       $m_to_n_func_mini_batch_info->set(weight_grad_totals_mat => $weight_grad_totals_mat);
       
@@ -193,9 +191,9 @@ package SPVM::MyAIUtil : precompile {
   }
 
   # バックプロパゲーション
-  sub backprop : SPVM::Hash ($m_to_n_func_infos : SPVM::List, $mnist_train_image_info_spvm : SPVM::Hash, $mnist_train_label_info_spvm : SPVM::Hash, $training_data_index : int)  {
+  static method backprop : Hash ($m_to_n_func_infos : List, $mnist_train_image_info_spvm : Hash, $mnist_train_label_info_spvm : Hash, $training_data_index : int)  {
     
-    my $m_to_n_func_info = (SPVM::Hash)$m_to_n_func_infos->get(0);
+    my $m_to_n_func_info = (Hash)$m_to_n_func_infos->get(0);
     my $first_inputs_length = (int)$m_to_n_func_info->get("inputs_length");
     
     # 入力(0～255の値を0～1に変換)
@@ -204,71 +202,71 @@ package SPVM::MyAIUtil : precompile {
     my $image_unit_length = $mnist_train_image_rows_count * $mnist_train_image_columns_count;
     my $mnist_train_image_data = (byte[])$mnist_train_image_info_spvm->get("data");
     
-    my $first_inputs_raw_uint8 = SPVM::ArrayUtil->copy_array_range_byte($mnist_train_image_data, $image_unit_length * $training_data_index, $image_unit_length);
-    my $first_inputs_raw_float = SPVM::MyAIUtil->convert_ubyte_array_to_float_array($first_inputs_raw_uint8);
+    my $first_inputs_raw_uint8 = Fn->copy_array_range_byte($mnist_train_image_data, $image_unit_length * $training_data_index, $image_unit_length);
+    my $first_inputs_raw_float = MyAIUtil->convert_ubyte_array_to_float_array($first_inputs_raw_uint8);
     
-    my $first_inputs = SPVM::MyAIUtil->array_div_scalar($first_inputs_raw_float, 255);
+    my $first_inputs = MyAIUtil->array_div_scalar($first_inputs_raw_float, 255);
     
     # 期待される出力を確率分布化する
-    my $label_numbers = (SPVM::IntList)$mnist_train_label_info_spvm->get("label_numbers");
-    my $label_number = (SPVM::Int)$label_numbers->get($training_data_index);
-    my $desired_outputs = SPVM::MyAIUtil->probabilize_desired_outputs($label_number);
+    my $label_numbers = (IntList)$mnist_train_label_info_spvm->get("label_numbers");
+    my $label_number = (Int)$label_numbers->get($training_data_index);
+    my $desired_outputs = MyAIUtil->probabilize_desired_outputs($label_number);
     
     # 各変換関数のバイアスの傾き
-    my $biase_grads_in_m_to_n_funcs = SPVM::List->new_len(new float[][0], $m_to_n_func_infos->length);
+    my $biase_grads_in_m_to_n_funcs = List->new_len(new float[][0], $m_to_n_func_infos->length);
     
     # 各変換関数の重みの傾き
-    my $weight_grads_mat_in_m_to_n_funcs = SPVM::List->new_len(new SPVM::MyAIUtil::FloatMatrix[0], $m_to_n_func_infos->length);
+    my $weight_grads_mat_in_m_to_n_funcs = List->new_len(new MyAIUtil::FloatMatrix[0], $m_to_n_func_infos->length);
     
     # バイアスの傾きと重みの傾きの初期化
     for (my $m_to_n_func_index = 0; $m_to_n_func_index < $m_to_n_func_infos->length; $m_to_n_func_index++) {
-      my $m_to_n_func_info = (SPVM::Hash)$m_to_n_func_infos->get($m_to_n_func_index);
+      my $m_to_n_func_info = (Hash)$m_to_n_func_infos->get($m_to_n_func_index);
       my $inputs_length = (int)$m_to_n_func_info->get("inputs_length");
       my $outputs_length = (int)$m_to_n_func_info->get("outputs_length");
       
       # バイアスの傾きを0で初期化
-      $biase_grads_in_m_to_n_funcs->set($m_to_n_func_index => SPVM::MyAIUtil->array_new_zero($outputs_length));
+      $biase_grads_in_m_to_n_funcs->set($m_to_n_func_index => MyAIUtil->array_new_zero($outputs_length));
 
       # 重みの傾きを0で初期化
-      $weight_grads_mat_in_m_to_n_funcs->set($m_to_n_func_index => SPVM::MyAIUtil->mat_new_zero($outputs_length, $inputs_length));
+      $weight_grads_mat_in_m_to_n_funcs->set($m_to_n_func_index => MyAIUtil->mat_new_zero($outputs_length, $inputs_length));
     }
 
     # 各層の入力
-    my $inputs_in_m_to_n_funcs = SPVM::List->new(new float[][0]);
+    my $inputs_in_m_to_n_funcs = List->new(new float[][0]);
     $inputs_in_m_to_n_funcs->push($first_inputs);
     
     
     # 各層の活性化された出力
-    my $outputs_in_m_to_n_funcs = SPVM::List->new(new float[][0]);
+    my $outputs_in_m_to_n_funcs = List->new(new float[][0]);
     
     # 入力層の入力から出力層の出力を求める
     # バックプロパゲーションのために各層の出力と活性化された出力を保存
     for (my $m_to_n_func_index = 0; $m_to_n_func_index < $m_to_n_func_infos->length; $m_to_n_func_index++) {
       my $cur_inputs = (float[])$inputs_in_m_to_n_funcs->get($inputs_in_m_to_n_funcs->length - 1);
-      my $m_to_n_func_info = (SPVM::Hash)$m_to_n_func_infos->get($m_to_n_func_index);
+      my $m_to_n_func_info = (Hash)$m_to_n_func_infos->get($m_to_n_func_index);
       my $inputs_length = (int)$m_to_n_func_info->get("inputs_length");
       my $outputs_length = (int)$m_to_n_func_info->get("outputs_length");
       
       # 重み行列
-      my $weights_mat = (SPVM::MyAIUtil::FloatMatrix)$m_to_n_func_info->get("weights_mat");
+      my $weights_mat = (MyAIUtil::FloatMatrix)$m_to_n_func_info->get("weights_mat");
 
       # 入力行列
       my $cur_inputs_rows_length = $outputs_length;
       my $cur_inputs_columns_length = 1;
-      my $cur_inputs_mat = SPVM::MyAIUtil->mat_new($cur_inputs, $cur_inputs_rows_length, $cur_inputs_columns_length);
+      my $cur_inputs_mat = MyAIUtil->mat_new($cur_inputs, $cur_inputs_rows_length, $cur_inputs_columns_length);
       
       # 重みと入力の行列積
-      my $mul_weights_inputs_mat = SPVM::MyAIUtil->mat_mul($weights_mat, $cur_inputs_mat);
+      my $mul_weights_inputs_mat = MyAIUtil->mat_mul($weights_mat, $cur_inputs_mat);
       my $mul_weights_inputs = $mul_weights_inputs_mat->values;
 
       # バイアス
       my $biases = (float[])$m_to_n_func_info->get("biases");
       
       # 出力 - 重みと入力の行列積とバイアスの和
-      my $outputs = SPVM::MyAIUtil->array_add($mul_weights_inputs, $biases);
+      my $outputs = MyAIUtil->array_add($mul_weights_inputs, $biases);
       
       # 活性化された出力 - 出力に活性化関数を適用
-      my $activate_outputs = SPVM::MyAIUtil->array_sigmoid($outputs);
+      my $activate_outputs = MyAIUtil->array_sigmoid($outputs);
       
       # バックプロパゲーションのために出力を保存
       $outputs_in_m_to_n_funcs->push($outputs);
@@ -284,18 +282,18 @@ package SPVM::MyAIUtil : precompile {
     my $last_activate_outputs = (float[])$inputs_in_m_to_n_funcs->pop;
     
     # softmax関数
-    # my $softmax_outputs = SPVM::MyAIUtil->softmax($last_activate_outputs);
+    # my $softmax_outputs = MyAIUtil->softmax($last_activate_outputs);
     
     # 誤差
     
-    my $cost = SPVM::MyAIUtil->cross_entropy_cost($last_activate_outputs, $desired_outputs);
-    # my $cost = SPVM::MyAIUtil->cross_entropy_cost($softmax_outputs, $desired_outputs);
+    my $cost = MyAIUtil->cross_entropy_cost($last_activate_outputs, $desired_outputs);
+    # my $cost = MyAIUtil->cross_entropy_cost($softmax_outputs, $desired_outputs);
     print "Cost: " . sprintf("%.3f", (double)$cost) . "\n";
     
     # 正解したかどうか
-    my $answer = SPVM::MyAIUtil->max_index($last_activate_outputs);
-    # my $answer = SPVM::MyAIUtil->max_index($softmax_outputs);
-    my $desired_answer = SPVM::MyAIUtil->max_index($desired_outputs);
+    my $answer = MyAIUtil->max_index($last_activate_outputs);
+    # my $answer = MyAIUtil->max_index($softmax_outputs);
+    my $desired_answer = MyAIUtil->max_index($desired_outputs);
     $TOTAL_COUNT++;
     if ($answer == $desired_answer) {
       $ANSWER_MATCH_COUNT++;
@@ -306,24 +304,24 @@ package SPVM::MyAIUtil : precompile {
     print "Match Rate: " . sprintf("%.02f", 100 * $match_rate) . "%\n";
     
     # 活性化された出力の微小変化 / 最後の出力の微小変化 
-    my $grad_last_outputs_to_activate_func = SPVM::MyAIUtil->array_sigmoid_derivative($last_outputs);
+    my $grad_last_outputs_to_activate_func = MyAIUtil->array_sigmoid_derivative($last_outputs);
     
     # 損失関数の微小変化 / 最後に活性化された出力の微小変化
-    # my $grad_last_activate_outputs_to_cost_func = SPVM::MyAIUtil->softmax_cross_entropy_cost_derivative($last_activate_outputs, $desired_outputs);
-    my $grad_last_activate_outputs_to_cost_func = SPVM::MyAIUtil->cross_entropy_cost_derivative($last_activate_outputs, $desired_outputs);
+    # my $grad_last_activate_outputs_to_cost_func = MyAIUtil->softmax_cross_entropy_cost_derivative($last_activate_outputs, $desired_outputs);
+    my $grad_last_activate_outputs_to_cost_func = MyAIUtil->cross_entropy_cost_derivative($last_activate_outputs, $desired_outputs);
 
     # 損失関数の微小変化 / 最後の出力の微小変化 (合成微分)
-    my $grad_last_outputs_to_cost_func = SPVM::MyAIUtil->array_mul($grad_last_outputs_to_activate_func, $grad_last_activate_outputs_to_cost_func);
+    my $grad_last_outputs_to_cost_func = MyAIUtil->array_mul($grad_last_outputs_to_activate_func, $grad_last_activate_outputs_to_cost_func);
 
     # 損失関数の微小変化 / 最終の層のバイアスの微小変化
     my $last_biase_grads = $grad_last_outputs_to_cost_func;
     
 
     # 損失関数の微小変化 / 最終の層の重みの微小変化
-    my $last_biase_grads_mat = SPVM::MyAIUtil->mat_new($last_biase_grads, scalar @$last_biase_grads, 1);
+    my $last_biase_grads_mat = MyAIUtil->mat_new($last_biase_grads, scalar @$last_biase_grads, 1);
     my $last_inputs = (float[])$inputs_in_m_to_n_funcs->get($inputs_in_m_to_n_funcs->length - 1);
-    my $last_inputs_transpose_mat = SPVM::MyAIUtil->mat_new($last_inputs, 1, scalar @$last_inputs);
-    my $last_weight_grads_mat = SPVM::MyAIUtil->mat_mul($last_biase_grads_mat, $last_inputs_transpose_mat);
+    my $last_inputs_transpose_mat = MyAIUtil->mat_new($last_inputs, 1, scalar @$last_inputs);
+    my $last_weight_grads_mat = MyAIUtil->mat_mul($last_biase_grads_mat, $last_inputs_transpose_mat);
       
     $biase_grads_in_m_to_n_funcs->set($biase_grads_in_m_to_n_funcs->length - 1 => $last_biase_grads);
     $weight_grads_mat_in_m_to_n_funcs->set($biase_grads_in_m_to_n_funcs->length - 1 => $last_weight_grads_mat);
@@ -336,37 +334,37 @@ package SPVM::MyAIUtil : precompile {
 
       # 損失関数の微小変化 / この層のバイアスの微小変化(微分の連鎖率を使って求める)
       # 次の層の重みの傾きの転置行列とバイアスの傾きの転置行列をかけて、それぞれの要素に、活性化関数の導関数をかける
-      my $forword_m_to_n_func_info = (SPVM::Hash)$m_to_n_func_infos->get($m_to_n_func_index + 1);
-      my $forword_weights_mat = (SPVM::MyAIUtil::FloatMatrix)$forword_m_to_n_func_info->get("weights_mat");
-      my $forword_weights_mat_transpose = SPVM::MyAIUtil->mat_transpose($forword_weights_mat);
+      my $forword_m_to_n_func_info = (Hash)$m_to_n_func_infos->get($m_to_n_func_index + 1);
+      my $forword_weights_mat = (MyAIUtil::FloatMatrix)$forword_m_to_n_func_info->get("weights_mat");
+      my $forword_weights_mat_transpose = MyAIUtil->mat_transpose($forword_weights_mat);
       my $forword_biase_grads = (float[])$biase_grads_in_m_to_n_funcs->get($m_to_n_func_index + 1);
-      my $forword_biase_grads_mat = SPVM::MyAIUtil->mat_new($forword_biase_grads, scalar @$forword_biase_grads, 1);
-      my $mul_forword_weights_transpose_mat_forword_biase_grads_mat = SPVM::MyAIUtil->mat_mul($forword_weights_mat_transpose, $forword_biase_grads_mat);
+      my $forword_biase_grads_mat = MyAIUtil->mat_new($forword_biase_grads, scalar @$forword_biase_grads, 1);
+      my $mul_forword_weights_transpose_mat_forword_biase_grads_mat = MyAIUtil->mat_mul($forword_weights_mat_transpose, $forword_biase_grads_mat);
       my $mul_forword_weights_transpose_mat_forword_biase_grads_mat_values = $mul_forword_weights_transpose_mat_forword_biase_grads_mat->values;
-      my $grads_outputs_to_array_sigmoid = SPVM::MyAIUtil->array_sigmoid_derivative($outputs);
-      my $biase_grads = SPVM::MyAIUtil->array_mul($mul_forword_weights_transpose_mat_forword_biase_grads_mat_values, $grads_outputs_to_array_sigmoid);
+      my $grads_outputs_to_array_sigmoid = MyAIUtil->array_sigmoid_derivative($outputs);
+      my $biase_grads = MyAIUtil->array_mul($mul_forword_weights_transpose_mat_forword_biase_grads_mat_values, $grads_outputs_to_array_sigmoid);
 
       $biase_grads_in_m_to_n_funcs->set($m_to_n_func_index => $biase_grads);
       
       # 損失関数の微小変化 / この層の重みの微小変化(微分の連鎖率を使って求める)
-      my $biase_grads_mat = SPVM::MyAIUtil->mat_new($biase_grads, scalar @$biase_grads, 1);
+      my $biase_grads_mat = MyAIUtil->mat_new($biase_grads, scalar @$biase_grads, 1);
       my $inputs = (float[])$inputs_in_m_to_n_funcs->get($m_to_n_func_index);
       
-      my $inputs_mat_transpose = SPVM::MyAIUtil->mat_new($inputs, 1, scalar @$inputs);
+      my $inputs_mat_transpose = MyAIUtil->mat_new($inputs, 1, scalar @$inputs);
       
-      my $weights_grads_mat = SPVM::MyAIUtil->mat_mul($biase_grads_mat, $inputs_mat_transpose);
+      my $weights_grads_mat = MyAIUtil->mat_mul($biase_grads_mat, $inputs_mat_transpose);
       
       $weight_grads_mat_in_m_to_n_funcs->set($m_to_n_func_index => $weights_grads_mat);
     }
 
-    my $m_to_n_func_grad_infos = SPVM::Hash->new({});
+    my $m_to_n_func_grad_infos = Hash->new({});
     $m_to_n_func_grad_infos->set(biases => $biase_grads_in_m_to_n_funcs);
     $m_to_n_func_grad_infos->set(weights_mat => $weight_grads_mat_in_m_to_n_funcs);
     
     return $m_to_n_func_grad_infos;
   }
 
-  sub convert_ubyte_array_to_float_array : float[] ($ubytes : byte[]) {
+  static method convert_ubyte_array_to_float_array : float[] ($ubytes : byte[]) {
     my $floats = new float[scalar @$ubytes];
     
     for (my $i = 0; $i < @$ubytes; $i++) {
@@ -377,7 +375,7 @@ package SPVM::MyAIUtil : precompile {
   }
 
   # 学習率とミニバッチ数を考慮してパラメーターを更新
-  sub update_params : void ($params : float[], $param_grads : float[], $learning_rate : float, $mini_batch_size : int) {
+  static method update_params : void ($params : float[], $param_grads : float[], $learning_rate : float, $mini_batch_size : int) {
     
     for (my $param_index = 0; $param_index < @$params; $param_index++) {
       my $update_value = ($learning_rate / $mini_batch_size) * $param_grads->[$param_index];
@@ -386,7 +384,7 @@ package SPVM::MyAIUtil : precompile {
   }
 
   # 配列の中で最大値のインデックスを求める。同じ数の場合は、最初の方を返す
-  sub max_index : int ($nums : float[]) {
+  static method max_index : int ($nums : float[]) {
     
     my $max = $nums->[0];
     my $max_index = 0;
@@ -401,7 +399,7 @@ package SPVM::MyAIUtil : precompile {
   }
 
   # 期待される出力を確率分布化する
-  sub probabilize_desired_outputs : float[] ($label_number : int) {
+  static method probabilize_desired_outputs : float[] ($label_number : int) {
     
     my $desired_outputs = new float[10];
     for (my $desired_outputs_index = 0; $desired_outputs_index < 10; $desired_outputs_index++) {
@@ -417,7 +415,7 @@ package SPVM::MyAIUtil : precompile {
   }
 
   # 配列の各要素の和
-  sub array_add : float[] ($nums1 : float[], $nums2 : float[]) {
+  static method array_add : float[] ($nums1 : float[], $nums2 : float[]) {
     
     if (@$nums1 != @$nums2) {
       die "Array length is diffent";
@@ -432,7 +430,7 @@ package SPVM::MyAIUtil : precompile {
   }
 
   # 配列の各要素の和を最初の引数に足す
-  sub array_add_inplace : void ($nums1 : float[], $nums2 : float[]) {
+  static method array_add_inplace : void ($nums1 : float[], $nums2 : float[]) {
     
     if (@$nums1 != @$nums2) {
       die "Array length is diffent";
@@ -444,7 +442,7 @@ package SPVM::MyAIUtil : precompile {
   }
 
   # 配列の各要素の積
-  sub array_mul : float[] ($nums1 : float[], $nums2 : float[]) {
+  static method array_mul : float[] ($nums1 : float[], $nums2 : float[]) {
     
     if (@$nums1 != @$nums2) {
       die "Array length is diffent";
@@ -459,13 +457,13 @@ package SPVM::MyAIUtil : precompile {
   }
 
   # Xivierの初期値を取得
-  sub create_xavier_init_value : float ($inputs_length : int) {
+  static method create_xavier_init_value : float ($inputs_length : int) {
       
     return randn(0, sqrtf((float)1 / $inputs_length));
   }
 
   # 配列の各要素にXivierの初期値を取得を適用する
-  sub array_create_xavier_init_value : float[] ($array_length : int, $inputs_length : int) {
+  static method array_create_xavier_init_value : float[] ($array_length : int, $inputs_length : int) {
     
     my $nums_out = new float[$array_length];
     for (my $i = 0; $i < $array_length; $i++) {
@@ -476,7 +474,7 @@ package SPVM::MyAIUtil : precompile {
   }
 
   # Heの初期値を取得
-  sub create_he_init_value : float ($inputs_length : int) {
+  static method create_he_init_value : float ($inputs_length : int) {
     
     my $he_init_value = randn(0, sqrtf((float)2 / $inputs_length));
     
@@ -484,7 +482,7 @@ package SPVM::MyAIUtil : precompile {
   }
 
   # 配列の各要素にHeの初期値を取得を適用する
-  sub array_create_he_init_value : float[] ($array_length : int, $inputs_length : int) {
+  static method array_create_he_init_value : float[] ($array_length : int, $inputs_length : int) {
     
     my $nums_out = new float[$array_length];
     for (my $i = 0; $i < $array_length; $i++) {
@@ -495,7 +493,7 @@ package SPVM::MyAIUtil : precompile {
   }
 
   # シグモイド関数
-  sub sigmoid : float ($x : float) {
+  static method sigmoid : float ($x : float) {
     
     my $sigmoid = 1.0f / (1.0f + expf(-$x));
     
@@ -503,7 +501,7 @@ package SPVM::MyAIUtil : precompile {
   }
 
   # シグモイド関数の導関数
-  sub sigmoid_derivative : float ($x : float) {
+  static method sigmoid_derivative : float ($x : float) {
     
     my $sigmoid_derivative = sigmoid($x) * (1 - sigmoid($x));
     
@@ -511,7 +509,7 @@ package SPVM::MyAIUtil : precompile {
   }
 
   # 配列の各要素にシグモイド関数を適用する
-  sub array_sigmoid : float[] ($nums : float[]) {
+  static method array_sigmoid : float[] ($nums : float[]) {
     
     my $nums_out = new float[scalar @$nums];
     for (my $i = 0; $i < @$nums; $i++) {
@@ -522,7 +520,7 @@ package SPVM::MyAIUtil : precompile {
   }
 
   # 配列の各要素にシグモイド関数の導関数を適用する
-  sub array_sigmoid_derivative : float[] ($nums : float[]) {
+  static method array_sigmoid_derivative : float[] ($nums : float[]) {
     
     my $nums_out = new float[scalar @$nums];
     for (my $i = 0; $i < @$nums; $i++) {
@@ -533,7 +531,7 @@ package SPVM::MyAIUtil : precompile {
   }
 
   # ReLU関数
-  sub relu : float ($x : float) {
+  static method relu : float ($x : float) {
     
     my $relu = $x * ($x > 0.0);
     
@@ -541,7 +539,7 @@ package SPVM::MyAIUtil : precompile {
   }
 
   # ReLU関数の導関数
-  sub relu_derivative : float ($x : float) {
+  static method relu_derivative : float ($x : float) {
     
     my $relu_derivative = 1 * ($x > 0.0);
     
@@ -549,7 +547,7 @@ package SPVM::MyAIUtil : precompile {
   }
 
   # 配列の各要素にReLU関数を適用する
-  sub array_relu : float[] ($nums : float[]) {
+  static method array_relu : float[] ($nums : float[]) {
     
     my $nums_out = new float[scalar @$nums];
     for (my $i = 0; $i < @$nums; $i++) {
@@ -560,7 +558,7 @@ package SPVM::MyAIUtil : precompile {
   }
 
   # 配列の各要素にReLU関数の導関数を適用する
-  sub array_relu_derivative : float[] ($nums : float[]) {
+  static method array_relu_derivative : float[] ($nums : float[]) {
     
     my $nums_out = new float[scalar @$nums];
     for (my $i = 0; $i < @$nums; $i++) {
@@ -571,7 +569,7 @@ package SPVM::MyAIUtil : precompile {
   }
 
   # クロスエントロピーコスト
-  sub cross_entropy_cost : float ($vec_a : float[], $vec_y : float[]) {
+  static method cross_entropy_cost : float ($vec_a : float[], $vec_y : float[]) {
     
     my $cross_entropy_cost = 0f;
     for (my $i = 0; $i < @$vec_a; $i++) {
@@ -583,7 +581,7 @@ package SPVM::MyAIUtil : precompile {
   }
 
   # クロスエントロピーコストの導関数
-  sub cross_entropy_cost_derivative : float[] ($vec_a : float[], $vec_y : float[]) {
+  static method cross_entropy_cost_derivative : float[] ($vec_a : float[], $vec_y : float[]) {
     
     my $vec_out = new float[scalar @$vec_a];
     for (my $i = 0; $i < @$vec_a; $i++) {
@@ -595,9 +593,9 @@ package SPVM::MyAIUtil : precompile {
 
   # 正規分布に従う乱数を求める関数
   # $m は平均, $sigma は標準偏差、
-  sub randn : float ($m : float, $sigma : float) {
-    my $r1 = ((double)crand() + 1) / ((double)SPVM::NumberUtil->RAND_MAX + 2);
-    my $r2 = ((double)crand() + 1) / ((double)SPVM::NumberUtil->RAND_MAX + 2);
+  static method randn : float ($m : float, $sigma : float) {
+    my $r1 = ((double)crand() + 1) / ((double)Fn->RAND_MAX + 2);
+    my $r2 = ((double)crand() + 1) / ((double)Fn->RAND_MAX + 2);
 
     my $randn = ($sigma * sqrt(-2 * log($r1)) * sin(2 * 3.14159265359 * $r2)) + $m;
 
@@ -605,7 +603,7 @@ package SPVM::MyAIUtil : precompile {
   }
 
   # 配列を0で初期化して作成
-  sub array_new_zero : float[] ($length : int) {
+  static method array_new_zero : float[] ($length : int) {
     
     my $nums = new float[$length];
     
@@ -613,10 +611,10 @@ package SPVM::MyAIUtil : precompile {
   }
 
   # 行列を0で初期化
-  sub mat_new_zero : SPVM::MyAIUtil::FloatMatrix ($rows_length : int, $columns_length : int) {
+  static method mat_new_zero : MyAIUtil::FloatMatrix ($rows_length : int, $columns_length : int) {
     my $values_length = $rows_length * $columns_length;
     
-    my $mat = new SPVM::MyAIUtil::FloatMatrix;
+    my $mat = new MyAIUtil::FloatMatrix;
     $mat->{rows_length} = $rows_length;
     $mat->{columns_length} = $columns_length;
     $mat->{values} = new float[$values_length];
@@ -625,7 +623,7 @@ package SPVM::MyAIUtil : precompile {
   }
 
   # 行列の積を求める
-  sub mat_mul : SPVM::MyAIUtil::FloatMatrix ($mat1 : SPVM::MyAIUtil::FloatMatrix, $mat2 : SPVM::MyAIUtil::FloatMatrix) {
+  static method mat_mul : MyAIUtil::FloatMatrix ($mat1 : MyAIUtil::FloatMatrix, $mat2 : MyAIUtil::FloatMatrix) {
     my $mat1_rows_length = $mat1->{rows_length};
     my $mat1_columns_length = $mat1->{columns_length};
     my $mat1_values = $mat1->{values};
@@ -653,9 +651,9 @@ package SPVM::MyAIUtil : precompile {
   }
 
   # 列優先の行列の作成
-  sub mat_new : SPVM::MyAIUtil::FloatMatrix ($values : float[], $rows_length : int, $columns_length : int) {
+  static method mat_new : MyAIUtil::FloatMatrix ($values : float[], $rows_length : int, $columns_length : int) {
     
-    my $mat = new SPVM::MyAIUtil::FloatMatrix;
+    my $mat = new MyAIUtil::FloatMatrix;
     $mat->{rows_length} = $rows_length;
     $mat->{columns_length} = $columns_length;
     $mat->{values} = $values;
@@ -664,13 +662,13 @@ package SPVM::MyAIUtil : precompile {
   }
 
   # 行列を転置(行列の入れ替え)
-  sub mat_transpose : SPVM::MyAIUtil::FloatMatrix ($mat : SPVM::MyAIUtil::FloatMatrix) {
+  static method mat_transpose : MyAIUtil::FloatMatrix ($mat : MyAIUtil::FloatMatrix) {
     
     my $rows_length = $mat->{rows_length};
     my $columns_length = $mat->{columns_length};
     my $length = $rows_length * $columns_length;
     
-    my $mat_trans = new SPVM::MyAIUtil::FloatMatrix;
+    my $mat_trans = new MyAIUtil::FloatMatrix;
     $mat_trans->{rows_length} = $columns_length;
     $mat_trans->{columns_length} = $rows_length;
     
@@ -688,7 +686,7 @@ package SPVM::MyAIUtil : precompile {
   }
   
   # 配列の要素のスカラー値との積
-  sub array_div_scalar : float[] ($nums : float[], $scalar_num : float) {
+  static method array_div_scalar : float[] ($nums : float[], $scalar_num : float) {
     
     my $nums_out = new float[scalar @$nums];
     for (my $i = 0; $i < @$nums; $i++) {
@@ -699,7 +697,7 @@ package SPVM::MyAIUtil : precompile {
   }
   
   # softmax関数
-  sub softmax : float[] ($nums : float[]) {
+  static method softmax : float[] ($nums : float[]) {
     
     my $nums_length = @$nums;
     my $exp_total = 0f;
@@ -716,7 +714,7 @@ package SPVM::MyAIUtil : precompile {
   }
 
   # softmaxクロスエントロピー誤差の導関数
-  sub softmax_cross_entropy_cost_derivative : float[] ($softmax_outputs : float[], $desired_outputs : float[]) {
+  static method softmax_cross_entropy_cost_derivative : float[] ($softmax_outputs : float[], $desired_outputs : float[]) {
     
     my $length = @$softmax_outputs;
     

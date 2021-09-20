@@ -4,9 +4,9 @@ use FindBin;
 use lib "$FindBin::Bin/network_lib";
 use List::Util 'shuffle';
 
-use SPVM 'SPVM::MyAIUtil';
-use SPVM 'SPVM::Hash';
-use SPVM 'SPVM::List';
+use SPVM 'MyAIUtil';
+use SPVM 'Hash';
+use SPVM 'List';
 
 # 学習率
 my $learning_rate = 3;
