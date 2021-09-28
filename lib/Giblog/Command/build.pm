@@ -57,7 +57,7 @@ sub run {
     # 最初の段落下に広告を追加
     {
       my $ad = <<'EOS';
-<div style="width:calc(100% - 30px);margin:0 auto;">
+<div style="width:calc(100% - 30px);margin:10px auto;">
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4525414114581084"
        crossorigin="anonymous"></script>
   <!-- 最初の段落下 - ディスプレイ 横長 レスポンシブ -->
