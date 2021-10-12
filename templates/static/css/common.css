@@ -100,10 +100,6 @@
     margin-bottom:15px;
   }
   
-  .inside {
-    width:1080px;
-    margin:0 auto;
-  }
   /* footer */
   .footer .perlri_link img {
     width:105px;
@@ -164,7 +160,7 @@
   
   /* content */
   .content {
-    width:calc(100% - 320px - 20px);
+    width:calc(100% - 320px);
   }
   
   /* entry */
@@ -180,43 +176,26 @@
   /* サイドバー */
   .side {
     width:320px;
-    margin-left:20px;
   }
   .side_list {
-  }
-  .side_list_title {
-    background:var(--theme_color);
-    color:white;
-    font-weight:bold;
-    padding: 11px 0px 9px 0px;
-    text-align:center;
+    margin-top:15px;
+    margin-bottom:20px;
   }
   .side_list_body {
     text-align:center;
-    letter-spacing:1px;    
-    font-weight:bold;
-    line-height:1.5;
-    font-size:16px;
   }
 
   .side_list_image img {
-    width:200px;
   }
   .side_list ul {
-    margin-bottom:30px;
   }
   .side_list li {
     list-style:none;
-    background:white;
-    border:1px solid #D0D0DA;
-    border-bottom:none;
-    padding:12px 0px 10px 15px;
   }
-  .side_list li:last-child {
-    border-bottom:1px solid #D0D0DA;
-  }
-  .side_list li:first-child {
-    border-top:none;
+
+  .inside {
+    width:1080px;
+    margin:0 auto;
   }
   
   h2 {
@@ -439,20 +418,8 @@
   
   /* サイドバー */
   .side {
-    margin:0;
-    padding:0;
     width:100%;
-    height:auto;
-    overflow:visible;
   }
-  .side_list li {
-    border-left:none;
-    border-right:none;
-  }
-  .side_list li:last-child {
-    border-bottom:none;
-  }
-
   h1, h2, h3, h4, p, pre, blockquote, table, ul, ol, .header_main  {
     margin-left:10px;
     margin-right:10px;
