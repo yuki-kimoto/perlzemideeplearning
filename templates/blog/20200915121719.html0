@@ -1,0 +1,214 @@
+<h2>ディープラーニングで初期入力から最終出力を得る計算過程</h2>
+
+ディープラーニングで初期入力から最終出力を得る計算過程について解説します。
+
+前提として、<a href="/blog/20200913103640.html">ベクトルの和を求める計算</a>と<a href="/blog/20200914103640.html">行列の積を求める計算</a>を理解しておいてください。
+
+<h3>入力層と隠れ層と出力層の関係</h3>
+
+ディープラーニングの解説では、入力層と隠れ層と出力層の図が必ずでてきます。ただし、この図は、概念的な図であって、実際のプログラムにおけるデータ構造を適切に表現しているわけではありません。
+
+プログラムを書く上で、知っておかなければならない情報は、次の情報です。
+
+「入力数」と「隠れ層の出力数」です。
+
+<pre>
+* * *     (入力。3つ)
+
+隠れ層0
+
+* * * * * (隠れ層0の出力。5つ。)
+
+隠れ層1
+
+* * *     (隠れ層1の出力。3つ。)
+
+隠れ層2
+
+* *       (隠れ層2の出力。2つ。これが最終出力。)
+</pre>
+
+個々のデータはすべて32bit浮動小数点で表現されます。C言語でいうところのfloat型です。
+
+<h4>入力数</h4>
+
+28ピクセル×28ピクセルのモノクロ画像の場合は、float型の784個の入力数です。色の濃さは0～255で表現できるので、float型の値として表現できます。float型は浮動小数点型ですが、小数点を使わないことによって、整数も表現できます。
+
+<h4>隠れ層の出力数</h4>
+
+隠れ層の出力数は、自分で決めます。3層あったとすると0層目は100、1層目は150、2層目は120のように任意で決めます。
+
+ニューラルネットワークでいうニューロンの個数は、この数に対応しています。
+
+<h4>出力数</h4>
+
+出力数は、たとえばパターン認識の場合で、A、B、Cを判定するとすると、3になります。
+
+隠れ層の最後の出力数は、最終的な出力数になります。上記の例では、最後の120が、最終的な出力数になります。
+
+ですので、最後の隠れ層の出力数を決めると、それが出力数になります。
+
+<h3>隠れ層の各層の情報</h3>
+
+次に隠れ層の各層の情報について書きます。隠れ層の各層は、重みとバイアスと呼ばれるパラメーターを持っています。これは、<a href="/blog/20200302113052.html">m個の入力をn個の出力に変換</a>するためのものです。
+
+重みは行列として表現されます。バイアスは、ベクトルとして表現されます。
+
+<h4>重みとバイアスを使って入力から出力を求める計算</h4>
+
+2つの入力を、重みとバイアスを使って、3つの出力に変換するPerlのコードです。これは、行列を使うと簡潔に求められます。add_vecは行列の和、mul_mutは、行列の積を求める関数だと考えてください。
+
+重みは、3行2列の列優先の行列だと考えてください。
+
+<pre>
+# 実際の処理の詳細
+$outputs->[0] = $weights->[0] * $inputs->[0] + $weights->[3] * $inputs->[1] + $biases->[0];
+$outputs->[1] = $weights->[1] * $inputs->[0] + $weights->[4] * $inputs->[1] + $biases->[1];
+$outputs->[2] = $weights->[2] * $inputs->[0] + $weights->[5] * $inputs->[1] + $biases->[2];
+
+# 行列での表現
+$outputs = add_vec(mul_mut($weights, $inputs), $biases);
+</pre>
+
+数学の式を見ると、頭が混乱してきますが、単なる掛け算・足し算・関数呼び出しと考えると簡単ですね。
+
+<h3>各層の重みとバイアスのパラメーターの形の決め方</h3>
+
+各層の重みとバイアスのパラメータが、何から決まるかということを書きます。
+
+それは、簡単で、入力数、隠れ層の各層のニューロン数、出力数です。これが決まれば自動的に決まります。
+
+上の例では、入力が2で、出力が3です。すると重みは3行2列の行列、バイアスは、3の長さのベクトルになります。
+
+入力が784個、出力が100個だとすると、重みは100行784列の行列、バイアスは、100の長さのベクトルになります。
+
+重みとバイアスは、学習が終わった後に更新される、動的なものです。重みとバイアスの良い初期値については以下の記事を参考にしてください。
+
+<ul>
+  <li><a href="/blog/20200311113241.html">各層のパラメーターの初期値の設定方法</a></li>
+</ul>
+
+<h3>活性化関数が適用される位置</h3>
+
+<a href="/blog/20200902120907.html">活性化関数</a>は、各層の出力に対して適用されます。活性化関数が適用された出力が、次の層の入力になります。
+
+<pre>
+# 活性化関数の適用
+my $new_inputs = [];
+for (my $i = 0; $i < @$outputs; $i++) {
+  $new_inputs->[$i] = activate_func($outputs->[$i]);
+}
+</pre>
+
+<h3>ディープラーニングで初期入力から最終出力を得る</h3>
+
+では、ディープラーニングで、初期入力から最終出力を得るプログラムをPerlで書いてみましょう。活性化関数には<a href="/blog/20200911102242.html">ReLU</a>を使います。
+
+重みとバイアスは、自動的に求めることができますが、ここでは、簡便のために、ベタで書きます。
+
+入力数が2、隠れ層の各層の出力数を「3, 2」とします。隠れ層の最後の出力が、最終出力になります。
+
+<pre>
+use strict;
+use warnings;
+
+my $first_inputs = [0.1, 0.2];
+
+# 隠れ層の重みとバイアス
+my $layers = [
+  # 隠れ層0層(2入力を3出力へ)
+  {
+    weights => [
+      0.6, 0.2, 0.4,
+      0.4, 0.3, 0.7
+    ],
+    weights_rows_length => 3,
+    weights_columns_length => 2,
+    biases => [0.5, 0.2, 0.8]
+  },
+  # 隠れ層1層(3入力を2出力へ)
+  {
+    weights => [
+      0.8, 0.2, 0.2,
+      0.2, 0.1, 0.6
+    ],
+    weights_rows_length => 2,
+    weights_columns_length => 3,
+    biases => [0.5, 0.1]
+  },
+];
+
+# 初期入力から最終出力を得る
+my $inputs = $first_inputs;
+my $outputs;
+for (my $i = 0; $i < @$layers; $i++) {
+  my $layer = $layers->[$i];
+  
+  # 重み
+  my $weights = $layer->{weights};
+  my $weights_rows_length = $layer->{weights_rows_length};
+  my $weights_columns_length = $layer->{weights_columns_length};
+  
+  # バイアス
+  my $biases = $layer->{biases};
+  
+  # 出力 = 重み行列 * 入力 + バイアス
+  my $mul_weight_inputs = mul_mat($weights, $weights_rows_length, $weights_columns_length, $inputs);
+  $outputs = add_vec($mul_weight_inputs, $biases);
+  
+  # 活性化関数を適用
+  my $activate_outputs = [];
+  for (my $i = 0; $i < @$outputs; $i++) {
+    $activate_outputs->[$i] = relu($outputs->[$i]);
+  }
+  
+  # 出力を次の入力へ
+  $inputs = $activate_outputs;
+}
+
+# 最終出力を表示 1.166 0.872
+print "@$outputs\n";
+
+# 活性化関数 ReLU
+sub relu {
+  my ($x) = @_;
+  
+  my $relu = $x * ($x > 0.0);
+  
+  return $relu;
+}
+
+# ベクトルの和
+sub add_vec {
+  my ($mul_weight_inputs, $biases) = @_;
+  
+  my $outputs = [];
+  for (my $i = 0; $i < @$mul_weight_inputs; $i++) {
+    $outputs->[$i] = $mul_weight_inputs->[$i] + $biases->[$i];
+  }
+  
+  return $outputs;
+}
+
+# 行列の積(行列とベクトルの掛け算)
+sub mul_mat {
+  my ($weights, $weights_rows_length, $weights_columns_length, $inputs) = @_;
+  
+  my $inputs_rows_length = @$inputs;
+  my $inputs_columns_length = 1;
+
+  my $outputs = [];
+  
+  # 行列の積の計算
+  for(my $row = 0; $row < $weights_rows_length; $row++) {
+    for(my $col = 0; $col < $inputs_columns_length; $col++) {
+      for(my $incol = 0; $incol < $weights_columns_length; $incol++) {
+        $outputs->[$row + $col * $inputs_rows_length]
+         += $weights->[$row + $incol * $weights_rows_length] * $inputs->[$incol + $col * $inputs_rows_length];
+      }
+    }
+  }
+  
+  return $outputs;
+}
+</pre>

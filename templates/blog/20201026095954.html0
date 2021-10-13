@@ -1,0 +1,580 @@
+<h2>逆誤差伝播法 - バックプロパゲーション 書き始め</h2>
+
+ディープラーニングにおいて、逆誤差伝播法(バックプロパゲーション)は、ソースコードを読むときに、最も理解するのが難しい部分だと思います。
+
+ソースコードの中に、行列を転置する部分がでてきます。微分がでてきます。入力と出力と活性化された出力と重みとバイアスが入り混じっています。最終出力と中間出力の部分では、傾きを求める式の表現が異なっています。
+
+m入力からn出力の変換関数において、微分とはいったい、どのような操作なのだろう。高校数学ではならっていないぞ。ヤコビ行列? 結局、高度な数学の概念を理解していない限り、ディープラーニングは、理解できないのかな?
+
+ソースコードを一目見たときに「いったい何をしているだろう?」と疑問が浮かぶと思います。
+
+これは僕も感じたことです。ただ、ソースコードの解読を進めていったときに、Web上に書いてある情報とはかなりの違いがあることもわかってきました。
+
+ディープラーニングは、「高校数学」と「多段の関数における傾きの求め方」と「for文の繰り返しの理解」があれば、読み解けます。行列の計算は、ソフトウェアにおけるパフォーマンスの高速化と数学的抽象化のために、行われているということがわかってきます。
+
+ひとつの要素なら具体的に読み解ける、それが繰り返されているだけだ、その繰り返しを行列を使うと簡単に速く計算できるんだということです。
+
+今、文系で仕事に関わる方も、AIディープラーニングについて、理解を深めたいという需要を感じています。誤解のあるまま結論を急いだ判断をしないように、AIとは何かをもう少し正しく知りたいという需要です。ただ、高度な数学的理解が、壁になって、理解するのが難しくなっているということも感じます。
+
+Perlで学ぶディープラーニング入門は、if文とfor文と高校数学(傾きの理解)+アルファで、ディープラーニングが理解できるように、工夫されたサイトです。
+
+<h3>微分の定義</h3>
+
+逆誤差伝播法の理解に必要な高校数学の範囲で理解できるような簡単な微分だけ少し理解しておきましょう。
+
+数学における微分の定義は以下です。
+
+<pre>
+# 微分の定義 - 以下の式においてΔxを極限まで0に近づける
+f'(x) = (f(x + Δx) - f(x)) / ((x + Δx) - x)
+</pre>
+
+「入力の微小変化に対する出力の変化の比」が、微分の定義です。直感的には、ある入力の変化に対して、どれくらい敏感に出力が変化するかということを表します。
+
+<h3>定数関数の微分</h3>
+
+定数の微分は「0」になります。
+
+<pre>
+# 定数関数
+f(x) = 5;
+
+# 定数関数の微分
+f'(x) = 0;
+</pre>
+
+上記の「=」は数学記号の等価を表現しています。プログラムにおける代入ではないので、注意してください。
+
+定義に従って計算してみましょう。わかりやすいようにPerlプログラムとして書いてみますね。数学の定義だけだと、ソフトウェアエンジニアは、立ち眩みを起こす可能性があります。
+
+定数関数なので、入力は便宜的なものだと考えてください。数学的な定義においては「$x_delta」を、極限まで0に近づけると考えてください。
+
+<pre>
+use strict;
+use warnings;
+
+my $x = 3;
+my $x_delta = 0.0000001;
+
+# 定数関数の微分
+my $const_derivative = (const($x + $x_delta) - const($x)) / (($x + $x_delta) - $x);
+
+# 定数関数
+sub const {
+  return 5;
+}
+
+print $const_derivative;
+</pre>
+
+「$x」がどのような値であっても、結果は「0」になることを確認してみてください。
+
+つまり、定数関数の微分は以下で表現されます。
+
+<pre>
+# 定数関数の微分
+sub const_derivative {
+  return 0;
+}
+</pre>
+
+<h3>関数の微分と導関数、微分係数と傾きの関係</h3>
+
+<a href="/blog/20200919123308.html">導関数</a>は「関数の微分」と全く同じ意味です。このサイトでは「ある関数の微分」のことを「導関数」と呼ぶようにしています。そして、導関数とは、ある入力の微小変化に対する出力の変化の比、つまり、傾き(微分係数とも呼ばれる)を求めるための関数として解説しています。
+
+関数の微分(導関数とも呼ばれる)と微分係数(傾きとも呼ばれる)の違いは、関数の微分は、関数であるため一般的な入力を抽象化しているのに対して、微分係数は、特定の入力に対応した実際の値であるということです。
+
+ソフトウェアエンジニアとしては、導関数とは傾きを求めるための関数であって、傾きとは実際に求めた値のことだと、理解してください。
+
+<h3>一次関数の微分</h3>
+
+一次関数の微分は、xの係数になります。一次関数とは「3x + 2」のようなxの次数が1の関数です。
+
+<pre>
+# 一次関数
+f(x) = 3x + 2;
+
+# 一次関数の微分(xの係数と同じ値になる)
+f'(x) = 3;
+</pre>
+
+上記の「=」は数学記号の等価を表現しています。プログラムにおける代入ではないので、注意してください。
+
+定義に従って計算してみましょう。わかりやすいようにPerlプログラムとして書いてみますね。数学の定義だけだと、ソフトウェアエンジニアは、立ち眩みを起こす可能性があります。
+
+一次関数なので、入力は便宜的なものだと考えてください。数学的な定義においては「$x_delta」を、極限まで0に近づけると考えてください。
+
+<pre>
+use strict;
+use warnings;
+
+my $x = 3;
+my $x_delta = 0.0000001;
+
+# 一次関数の微分
+my $liner_derivative = (liner($x + $x_delta) - liner($x)) / (($x + $x_delta) - $x);
+
+# 一次関数
+sub liner {
+  my ($x) = @_;
+  
+  my $y = 3 * $x + 2;
+  
+  return $y;
+}
+
+print $liner_derivative;
+</pre>
+
+「$x」がどのような値でも、結果が「3」になることを確認してみてください。今回の場合は、誤差があって「3.00000000444089」となりました。「$x_delta」が極限まで0に近づくと、3になります。
+
+つまり、「3x + 2」という一次関数の微分は以下で表現されます。
+
+<pre>
+# 一次関数の微分
+sub liner_derivative {
+  return 3;
+}
+</pre>
+
+<h3>活性化関数の微分</h3>
+
+ディープラーニングでは、ニューロンの活性化の度合いを表現するための活性化関数と呼ばれる関数があります。ただし、実際には、ニューロンの活性の度合いを表現しているというよりも、逆誤差伝播法において、ひとつのパラメーターに対する損失関数の傾きを求めるために導入されていると考えた方がよいのかもしれません。
+
+活性化関数の微分つまり、活性化関数の導関数を導出することはここではしません。ソウトウェアエンジニアとして理解しておく必要があることは、導関数が傾きを求めるための関数であるということです。
+
+導関数がソースコードに出現したら「おっ、ここでは、傾きを求めているのだな」と考えてください。
+
+<pre>
+# 活性化関数
+sub activate {
+  my ($input) = @_;
+  
+  # ...
+  
+  return $output;
+}
+
+# 活性化関数の微分
+sub activate_derivative {
+  my ($input) = @_;
+  
+  # ...
+  
+  return $output;
+}
+</pre>
+
+<h3>損失関数の微分</h3>
+
+ディープラーニングでは、誤差の指標である損失関数の値を小さくすることを目標にパラメータが調整されていきます。損失関数の微分について考えてみます。
+
+損失関数への入力は複数です。損失関数の出力はひとつです。
+
+損失関数が、これまで見てきた関数と異なるのは、複数の入力に対して、一つの出力を返すことです。
+
+<pre>
+# 損失関数
+sub cost {
+  my ($inputs) = @_;
+  
+  my $output;
+  
+  # ...
+  
+  return $output;
+}
+</pre>
+
+ここで「おやっ」となると思います。複数の入力に対して、一つの出力を行う関数の微分なんて習ったことないぞと。そもそも、それはなんだい?
+
+結論を先に書くと、損失関数の微分の結果は、複数の入力に対して、複数の出力になります。
+
+<pre>
+# 損失関数の微分
+sub cost_derivative {
+  my ($inputs) = @_;
+  
+  my $outputs = [];
+  
+  # ...
+  
+  return $outputs;
+}
+</pre>
+
+ただしこれは、そう見えるというだけで、実は、一つの入力に対して、ひとつの出力があるのを、まとめているだけです。cost_derivative_eachというひとつの入力に対して、ひとつの出力を行う関数を使って、損失関数の微分を書き直してみましょう。
+
+<pre>
+sub cost_derivative {
+  my ($inputs) = @_;
+  
+  my $outputs = [];
+  for (my $i = 0; $i < @$inputs; $i++) {
+    $outputs->[$i] = cost_derivative_each($inputs->[$i]);
+  }
+  # ...
+  
+  return $outputs;
+}
+
+# 損失関数
+sub cost_derivative_each {
+  my ($input) = @_;
+  
+  my $output;
+  
+  # ...
+  
+  return $output;
+}
+</pre>
+
+誤解を恐れずにいえば、注目する一つの入力以外の入力は、定数のようなものとして扱われ、損失関数の微分の結果には何ら影響を与えません。
+
+損失関数の一つであるクロースエントロピー関数をみてください。式は複雑ですが、それぞれの入力の結果が、独立していることを感じ取ってもらえればOKです。
+
+<pre>
+# クロスエントロピーコストの導関数
+sub cross_entropy_cost_derivative {
+  my ($vec_a, $vec_y) = @_;
+  
+  my $vec_out = [];
+  for (my $i = 0; $i < @$vec_a; $i++) {
+    $vec_out->[$i] = $vec_a->[$i] - $vec_y->[$i];
+  }
+  
+  return $vec_out;
+}
+</pre>
+
+<h3>偏微分とは何ですか?</h3>
+
+偏微分とは、微分のことです(笑)。注目する入力変数以外を、すべて定数とみなす微分です。
+
+<h3>最後のバイアスに対する損失関数の傾きを求める</h3>
+
+最後のバイアスに対する損失関数の傾きを求めてみましょう。
+
+多段の関数の傾きの求め方について理解しておく必要があります。
+
+<ul>
+  <li><a href="/blog/20201021085550.html">多段の関数の場合の傾きの求め方 - 合成関数の微分</a></li>
+</ul>
+
+多段の関数の傾きは次の公式で求められます。
+
+<pre>
+多段関数の傾き = 関数1の傾き * 関数2の傾き * 関数3の傾き * ... * 関数n-1の傾き * 関数nの傾き
+</pre>
+
+多段関数の傾きは、それぞれの関数の傾きの積であるということです。つまり、それぞれの関数の傾きがわかれば、それを掛け算することによって求めることができます。
+
+この式において、損失関数とは、関数nのことだと考えてください。
+
+最後のmからnへの変換関数のひとつのバイアスに着目してみましょう。ひとつのバイアスから見ると、バイアスを含んだ式は、最後のmからnの変換関数、活性化関数、損失関数につながっています。
+
+<pre>
+# バイアスを含んだ式から出力求める(最後のmからnの変換関数)
+my $output0 = $weigth0_0 * $input0 + $weigth01 * $input1 + $biase0;
+
+# 活性化関数を適用
+my $acivate_output0 = activate($output0);
+
+# 損失関数を適用(引数は、注目している$activate_outputとその他の引数という形で便宜的に記述)
+my $cost = cost($activate_output0, $other_args);
+</pre>
+
+mからnへの変換関数は、ひとつのバイアスに注目することによって、単なる一次式になります。「mからnへ変換する関数の微分の正体ってなんだ～?」の答えは「ひとつのバイアスに注目することによって、単なる一次式になる」でした。
+
+注目するバイアス以外は定数とみなせます。わかりやすく書くと、以下になります。
+
+<pre>
+# バイアスを含んだ式から出力求める(最後のmからnの変換関数)
+my $output0 = $biase0 + C;
+</pre>
+
+これを微分するとどうなるでしょうか? Cは定数関数ですので、微分は0になりますね。$biase0の係数は「1」なので、微分は「1」となります。つまり、傾きは「1」です。
+
+<pre>
+my $m_to_n_grad_for_biase0 = 1;
+</pre>
+
+次に活性化関数の傾きはどうなるでしょうか? これは、活性化関数の導関数を使います。
+
+<pre>
+# 活性化関数の傾き
+my $acivate_grad_for_output = activate_derivative($output);
+</pre>
+
+次に損失関数の傾きはどうなるでしょうか? これは、損失関数の導関数を使います。
+
+<pre>
+# 損失関数の傾き
+my $cost_grad_for_activate_output = cost_derivative($activate_output, $other_args);
+</pre>
+
+バイアスに対する損失関数の傾きは、それぞれの傾きの積で求められるのでした。
+
+<pre>
+# ひとつのバイアスの損失関数に対する傾き
+my $cost_grad_for_biase0 = $m_to_n_grad_for_biase0 * $acivate_grad_for_output * $cost_grad_for_activate_output;
+</pre>
+
+求まりました。他のバイアスについても、同じ方法で求まります。すべて求まったとすると、以下のような配列になります。
+
+<pre>
+[
+  $cost_grad_for_biase0,
+  $cost_grad_for_biase1,
+  $cost_grad_for_biase2,
+]
+</pre>
+
+<h3>最後の重みに対する損失関数の傾きを求める</h3>
+
+最後の重みに対する損失関数の傾きを求めてみましょう。バイアスの次は、重みにチャレンジします。
+
+最後のmからnへの変換関数のひとつの重みに着目してみましょう。ひとつの重みから見ると、重みを含んだ式は、最後のmからnの変換関数、活性化関数、損失関数につながっています。
+
+<pre>
+# 重みを含んだ式から出力求める(最後のmからnの変換関数)
+my $output0 = $weigth0_0 * $input0 + $weigth01 * $input1 + $biase0;
+
+# 活性化関数を適用
+my $acivate_output0 = activate($output0);
+
+# 損失関数を適用(引数は、注目している$activate_outputとその他の引数という形で便宜的に記述)
+my $cost = cost($activate_output0, $other_args);
+</pre>
+
+mからnへの変換関数は、ひとつの重みに注目することによって、単なる一次式になります。
+
+注目する重み以外は定数とみなせます。わかりやすく書くと、以下になります。入力も「INPUT0」と書いて、定数とみなしていることに注目してください。(実際のコードでは、そのまま変数として扱います。)
+
+<pre>
+# 重みを含んだ式から出力求める(最後のmからnの変換関数)
+my $output0 = $weigth0_0 * INPUT0 + C;
+</pre>
+
+これを微分するとどうなるでしょうか? Cは定数関数ですので、微分は0になりますね。$weight0の係数は「INPUT0」なので、微分は「INPUT0」となります。つまり、傾きは「INPUT0」です。
+
+<pre>
+my $m_to_n_grad_for_weight = INPUT0;
+</pre>
+
+次に活性化関数の傾きはどうなるでしょうか? これは、活性化関数の導関数を使います。
+
+<pre>
+# 活性化関数の傾き
+my $acivate_grad_for_output = activate_derivative($output);
+</pre>
+
+次に損失関数の傾きはどうなるでしょうか? これは、損失関数の導関数を使います。
+
+<pre>
+# 損失関数の傾き
+my $cost_grad_for_activate_output = cost_derivative($activate_output, $other_args);
+</pre>
+
+重みに対する損失関数の傾きは、それぞれの傾きの積で求められるのでした。
+
+<pre>
+# ひとつの重みの損失関数に対する傾き
+my $cost_grad_for_weight = $m_to_n_grad_for_weight * $acivate_grad_for_output * $cost_grad_for_activate_output;
+</pre>
+
+求まりました。他の重みに対しても同じ方法で求まります。
+
+重みの損失関数に対する傾きと、バイアスの損失関数に対する傾きの関係を見ておきましょう。重みの係数は「INPUT0」、バイアスの係数は「1」ですので。重みに関する傾きは、バイアスに関する傾きの「INPUT0」倍になっています。
+
+ということは、バイアスの損失関数に対する傾きを計算して「INPUT0」倍すれば、重みの損失関数に対する傾きを求められます。
+
+<pre>
+my $cost_grad_for_weight = $cost_grad_for_biase0 * INPUT0;
+</pre>
+
+すべての重みの損失関数に関する傾きが求まったとすると、以下のような配列になります。3行2列の<a href="/blog/20200914103640.html">列優先の行列</a>として表現しています。
+
+<pre>
+[
+  $cost_grad_for_weight0_0,
+  $cost_grad_for_weight1_0,
+  $cost_grad_for_weight2_0,
+
+  $cost_grad_for_weight0_1,
+  $cost_grad_for_weight1_1,
+  $cost_grad_for_weight2_1,
+]
+</pre>
+
+重みの損失関数に対する傾きを、バイアスの損失関数に対する傾きとの関係を考慮して記述すると以下のようになります。
+
+<pre>
+[
+  $cost_grad_for_biase0 * INPUT0,
+  $cost_grad_for_biase1 * INPUT0,
+  $cost_grad_for_biase2 * INPUT0,
+
+  $cost_grad_for_biase0 * INPUT1,
+  $cost_grad_for_biase1 * INPUT1,
+  $cost_grad_for_biase2 * INPUT1,
+]
+</pre>
+
+<h3>重みの損失関数に対する傾きを行列で表現する</h3>
+
+重みの損失関数に対する傾きを<a href="/blog/20200928161518.html">行列</a>で表現してみましょう。それぞれの重みに対する損失関数の傾きは、ひとつづつ求まりますが、これをまとめて表現したものが行列になります。
+
+バイアス行列と入力行列を<a href="/blog/20200917123308.html">転置させた行列</a>の積になります。
+
+<pre>
+my $cost_grads_biases = [
+  $cost_grad_for_biase0,
+  $cost_grad_for_biase1,
+  $cost_grad_for_biase2,
+];
+
+my $inputs = [
+  $input0,
+  $input1
+];
+
+# バイアス行列 * 入力行列の転置
+my $cost_grads_weights = mul_mat(to_mat($cost_grads_biases), transpose(to_mat($inputs)));
+</pre>
+
+結果は以下になります。個別に考えたものと、行列で計算した結果が一致していることを確認してみてください。
+
+<pre>
+[
+  $cost_grad_for_biase0 * $input0,
+  $cost_grad_for_biase1 * $input0,
+  $cost_grad_for_biase2 * $input0,
+
+  $cost_grad_for_biase0 * $input1
+  $cost_grad_for_biase1 * $input1
+  $cost_grad_for_biase2 * $input1
+]
+</pre>
+
+<h3>最後から2番目のバイアスに対する損失関数の傾きを求める</h3>
+
+最後から2番目のmからnへの変換関数のひとつのバイアスに対する損失関数の傾きを求めてみます。
+
+ひとつのバイアスから見ると、バイアスを含んだ式は、最後から2番目のmからnの変換関数、活性化関数、最後のmからnの変換関数につながっています。
+
+<pre>
+# バイアスを含んだ式から出力求める(最後のmからnの変換関数)
+my $output0 = $weigth0_0 * $input0 + $weigth01 * $input1 + $biase0;
+
+# 活性化関数を適用
+my $acivate_output0 = activate($output0);
+
+# 活性化された出力は、次の入力になる
+my $forword_input0 = $activate_output0;
+
+# $forword_input0は、次のmからnへの関数の入力になる
+my $forword_output0 = $forword_weigth0_0 * $forword_input0 + $forword_weigth0_1 * $forword_input1 + $forword_biase0;
+my $forword_output1 = $forword_weigth1_0 * $forword_input0 + $forword_weigth1_1 * $forword_input1 + $forword_biase1;
+my $forword_output2 = $forword_weigth2_0 * $forword_input0 + $forword_weigth2_1 * $forword_input1 + $forword_biase2;
+</pre>
+
+まず注目するバイアス以外は定数とみなせます。
+
+<pre>
+# バイアスを含んだ式から出力求める(最後のmからnの変換関数)
+my $output0 = $biase0 + C;
+</pre>
+
+これを微分するとどうなるでしょうか? Cは定数関数ですので、微分は0になりますね。$biase0の係数は「1」なので、微分は「1」となります。つまり、傾きは「1」です。
+
+<pre>
+my $m_to_n_grad_for_biase0 = 1;
+</pre>
+
+次に活性化関数の傾きはどうなるでしょうか? これは、活性化関数の導関数を使います。
+
+<pre>
+# 活性化関数の傾き
+my $acivate_grad_for_output0 = activate_derivative($output0);
+</pre>
+
+次に、活性化された出力は、次のmからnへの変換関数の入力になるということを、じっと見てみましょう。
+
+<pre>
+# 活性化された出力は、次の入力になる
+my $forword_input0 = $activate_output0;
+
+# $forword_input0は、次のmからnへの関数の入力になる
+my $forword_output0 = $forword_weigth0_0 * $forword_input0 + $forword_weigth0_1 * $forword_input1 + $forword_biase0;
+my $forword_output1 = $forword_weigth1_0 * $forword_input0 + $forword_weigth1_1 * $forword_input1 + $forword_biase1;
+my $forword_output2 = $forword_weigth2_0 * $forword_input0 + $forword_weigth2_1 * $forword_input1 + $forword_biase2;
+</pre>
+
+複数の入力になっているということは、傾きは、その和になります。入力が複数になる場合は、傾きは、それぞれに対して求めた傾きの合計になります。
+
+<pre>
+入力が複数になる場合の損失関数の傾き = 入力1に対する式0の損失関数の傾き + 入力1に対する式1の損失関数の傾き + 入力1に対する式2の損失関数の傾き
+</pre>
+
+さて式0に関して、着目している「$forword_input0」以外を、すべて定数と考えてみましょう。$forword_input0の係数は「FORWORD_WEIGTH0_0」です。
+
+<pre>
+my $forword_output0 = FORWORD_WEIGTH0_0 * $forword_input0 + C;
+</pre>
+
+さてここで、それぞれの形をどこかで見たことはないでしょうか? 以下と似ていますね。
+
+<pre>
+# 重みを含んだ式から出力求める(最後のmからnの変換関数)
+my $output0 = $weigth0_0 * INPUT0 + C;
+</pre>
+
+最後の重みに対する損失関数の傾きは、最後のバイアスの損失関数の傾きに対して、INPUT0を掛けたものでした。
+
+<pre>
+$cost_grad_for_biase0 * INPUT0,
+</pre>
+
+式の形式が同じで、定数部分だけが異なるので「INPUT0」を「FORWORD_WEIGTH0_0」に変更すればよいわけです。今いる位置から見た場合は、ひとつ先のバイアスということなるので「biase」は「forword_biase」に変更します。
+
+<pre>
+$cost_grad_for_forword_biase0 * FORWORD_WEIGTH0_0,
+</pre>
+
+ここで重要なポイントは最後のバイアスに対する損失関数を求める計算で「$cost_grad_for_forword_biase0」は、すでに求まっているということです。
+
+さて式0に対して求めたので、式1と式2も計算してみましょう。
+
+<pre>
+$cost_grad_for_forword_biase0 * FORWORD_WEIGTH0_0,
+$cost_grad_for_forword_biase1 * FORWORD_WEIGTH1_0,
+$cost_grad_for_forword_biase2 * FORWORD_WEIGTH2_0,
+</pre>
+
+活性化関数の傾きも考慮してこれを掛けて、式0、式1、式2で求めた傾きの和を求めると以下のようになります。
+
+<pre>
+my $cost_grad_for_biase0
+  = $cost_grad_for_forword_biase0 * FORWORD_WEIGTH0_0 * $acivate_grad_for_output0 * $m_to_n_grad_for_biase0
+  + $cost_grad_for_forword_biase1 * FORWORD_WEIGTH1_0 * $acivate_grad_for_output0 * $m_to_n_grad_for_biase0
+  + $cost_grad_for_forword_biase2 * FORWORD_WEIGTH2_0 * $acivate_grad_for_output0 * $m_to_n_grad_for_biase0
+</pre>
+
+他のバイアスについて損失関数に対する傾きを求めてみましょう。
+
+<pre>
+my $cost_grad_for_biase1
+  = $cost_grad_for_forword_biase0 * FORWORD_WEIGTH0_1 * $acivate_grad_for_output1 * $m_to_n_grad_for_biase1
+  + $cost_grad_for_forword_biase1 * FORWORD_WEIGTH1_1 * $acivate_grad_for_output1 * $m_to_n_grad_for_biase1
+  + $cost_grad_for_forword_biase2 * FORWORD_WEIGTH2_1 * $acivate_grad_for_output1 * $m_to_n_grad_for_biase1
+</pre>
+
+<pre>
+my $cost_grad_for_biase2
+  = $cost_grad_for_forword_biase0 * FORWORD_WEIGTH0_2 * $acivate_grad_for_output2 * $m_to_n_grad_for_biase2
+  + $cost_grad_for_forword_biase1 * FORWORD_WEIGTH1_2 * $acivate_grad_for_output2 * $m_to_n_grad_for_biase2
+  + $cost_grad_for_forword_biase2 * FORWORD_WEIGTH2_2 * $acivate_grad_for_output2 * $m_to_n_grad_for_biase2
+</pre>
+

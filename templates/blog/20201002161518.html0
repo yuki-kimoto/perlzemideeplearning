@@ -1,0 +1,55 @@
+<h2>softmax関数</h2>
+
+softmax関数は、出力を合計が100%の確率分布に変換してくれる関数です。
+
+<pre>
+use strict;
+use warnings;
+
+# softmax関数
+sub softmax {
+  my ($nums) = @_;
+  
+  my $exp_total = 0;
+  for (my $i = 0; $i < @$nums; $i++) {
+    $exp_total += exp($nums->[$i]);
+  }
+  
+  my $nums_out = [];
+  for (my $i = 0; $i < @$nums; $i++) {
+    $nums_out->[$i] = exp($nums->[$i]) / $exp_total;
+  }
+  
+  return $nums_out;
+}
+
+my $outputs = [0.07, 0.14, 0.24];
+
+my $softmax_outputs = softmax($outputs);
+
+# 0.306954386271124 0.329211090547647 0.363834523181229
+print "@$softmax_outputs\n";
+</pre>
+
+もし出力に0が含まれていた場合でも、softmax関数の出力は、計算可能です。
+
+<pre>
+my $outputs = [0, 0.14, 0.24];
+
+my $softmax_outputs = softmax($outputs);
+
+# 0.292267512114761 0.336187661442797 0.371544826442441
+print "@$softmax_outputs\n";
+</pre>
+
+<a href="/blog/20200901120907.html">損失関数</a>である<a href="/blog/20200831120907.html">クロスエントロピー誤差</a>は、引数の値に0を含んでいる場合に、log(0)となるので、計算不能になりますが、softmax関数を出力層の活性化関数として使うと回避できます。
+
+<h3>softmax関数の導関数</h3>
+
+softmax関数の導関数は表現が難しいです。
+
+ただし、softmax関数とクロスエントロピー誤差の合成関数の導関数は表現が簡単なので、逆誤伝播法に使えます。
+
+<ul>
+  <li><a href="/blog/20200927161518.html">softmax関数とクロスエントロピー誤差の合成関数の導関数</a></li>
+</ul>

@@ -1,0 +1,32 @@
+<h2>訓練データをランダムにシャッフルする</h2>
+
+訓練データをランダムにシャッフルする方法を解説します。
+
+以下は訓練データをランダムにシャッフルして取得するPerlプログラムです。
+
+<pre>
+use strict;
+use warnings;
+use List::Util 'shuffle';
+
+# インデックスのシャッフル
+my @indexes = (0 .. 9);
+my @shuffled_indexes = shuffle @indexes;
+
+# 画像情報を想定したデータをランダムな順で取得
+my @training_datas = ('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'j', 'k');
+for my $index (@shuffled_indexes) {
+  my $training_data = $training_datas[$index];
+  print "$training_data\n";
+}
+</pre>
+
+<h3>訓練データをランダムにシャッフルして取得するPerlプログラムの簡易解説</h3>
+
+配列をランダムにシャッフルするにはList::Utilのshuffle関数を使います。
+
+まずインデックスを作成して、これをランダムにシャッフルします。
+
+そして、ランダムに並んだインデックスを使って、訓練データを取り出します。
+
+訓練データそのものをシャッフルしてもよいのですが、バイナリで複数の連続した画像情報を扱っている場合にも対応できるように、インデックスのシャッフルの例にしました。

@@ -1,0 +1,28 @@
+<h2>ReLU関数の導関数 - 活性化関数の導関数</h2>
+
+<a href="/blog/20200911102242.html">ReLU関数</a>の<a href="/blog/20200919123308.html">導関数</a>をPerlで書いてみます。
+
+ReLU関数の導関数をPerlで書いてみます。ReLU関数の導関数は、逆誤伝播法に利用します。
+
+<pre>
+use strict;
+use warnings;
+
+sub relu_derivative {
+  my ($x) = @_;
+  
+  my $relu_derivative = 1 * ($x > 0.0);
+  
+  return $relu_derivative;
+}
+
+my $value1 = 0.7;
+my $relu_derivative1 = relu_derivative($value1);
+
+print "$relu_derivative1\n";
+
+my $value2 = -0.4;
+my $relu_derivative2 = relu_derivative($value2);
+
+print "$relu_derivative2\n";
+</pre>
