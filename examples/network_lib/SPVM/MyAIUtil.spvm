@@ -1,7 +1,6 @@
 class MyAIUtil : precompile {
-  use Fn (crand, sprintf);
-  use Math (expf, sqrtf, logf, sinf);
-  use Math (log, sin, sqrt);
+  use Fn;
+  use Math;
   use List;
   use Hash;
   use MyAIUtil::FloatMatrix;
@@ -17,7 +16,7 @@ class MyAIUtil : precompile {
     my $size = @$array_original;
     my $array = Fn->copy_array_int($array_original);
     for (my $i = 0; $i < $size; $i++) {
-      my $j = crand() % $size;
+      my $j = Fn->crand() % $size;
       my $t = $array->[$i];
       $array->[$i] = $array->[$j];
       $array->[$j] = $t;
@@ -288,7 +287,7 @@ class MyAIUtil : precompile {
     
     my $cost = MyAIUtil->cross_entropy_cost($last_activate_outputs, $desired_outputs);
     # my $cost = MyAIUtil->cross_entropy_cost($softmax_outputs, $desired_outputs);
-    print "Cost: " . sprintf("%.3f", (double)$cost) . "\n";
+    print "Cost: " . Fn->sprintf("%.3f", (double)$cost) . "\n";
     
     # 正解したかどうか
     my $answer = MyAIUtil->max_index($last_activate_outputs);
@@ -301,7 +300,7 @@ class MyAIUtil : precompile {
     
     # 正解率を出力
     my $match_rate = (double)$ANSWER_MATCH_COUNT / $TOTAL_COUNT;
-    print "Match Rate: " . sprintf("%.02f", 100 * $match_rate) . "%\n";
+    print "Match Rate: " . Fn->sprintf("%.02f", 100 * $match_rate) . "%\n";
     
     # 活性化された出力の微小変化 / 最後の出力の微小変化 
     my $grad_last_outputs_to_activate_func = MyAIUtil->array_sigmoid_derivative($last_outputs);
@@ -459,7 +458,7 @@ class MyAIUtil : precompile {
   # Xivierの初期値を取得
   static method create_xavier_init_value : float ($inputs_length : int) {
       
-    return randn(0, sqrtf((float)1 / $inputs_length));
+    return cur->randn(0, Math->sqrtf((float)1 / $inputs_length));
   }
 
   # 配列の各要素にXivierの初期値を取得を適用する
@@ -467,7 +466,7 @@ class MyAIUtil : precompile {
     
     my $nums_out = new float[$array_length];
     for (my $i = 0; $i < $array_length; $i++) {
-      $nums_out->[$i] = create_xavier_init_value($inputs_length);
+      $nums_out->[$i] = cur->create_xavier_init_value($inputs_length);
     }
     
     return $nums_out;
@@ -476,7 +475,7 @@ class MyAIUtil : precompile {
   # Heの初期値を取得
   static method create_he_init_value : float ($inputs_length : int) {
     
-    my $he_init_value = randn(0, sqrtf((float)2 / $inputs_length));
+    my $he_init_value = cur->randn(0, Math->sqrtf((float)2 / $inputs_length));
     
     return $he_init_value;
   }
@@ -486,7 +485,7 @@ class MyAIUtil : precompile {
     
     my $nums_out = new float[$array_length];
     for (my $i = 0; $i < $array_length; $i++) {
-      $nums_out->[$i] = create_he_init_value($inputs_length);
+      $nums_out->[$i] = cur->create_he_init_value($inputs_length);
     }
     
     return $nums_out;
@@ -495,7 +494,7 @@ class MyAIUtil : precompile {
   # シグモイド関数
   static method sigmoid : float ($x : float) {
     
-    my $sigmoid = 1.0f / (1.0f + expf(-$x));
+    my $sigmoid = 1.0f / (1.0f + Math->expf(-$x));
     
     return $sigmoid;
   }
@@ -503,7 +502,7 @@ class MyAIUtil : precompile {
   # シグモイド関数の導関数
   static method sigmoid_derivative : float ($x : float) {
     
-    my $sigmoid_derivative = sigmoid($x) * (1 - sigmoid($x));
+    my $sigmoid_derivative = cur->sigmoid($x) * (1 - cur->sigmoid($x));
     
     return $sigmoid_derivative;
   }
@@ -513,7 +512,7 @@ class MyAIUtil : precompile {
     
     my $nums_out = new float[scalar @$nums];
     for (my $i = 0; $i < @$nums; $i++) {
-      $nums_out->[$i] = sigmoid($nums->[$i]);
+      $nums_out->[$i] = cur->sigmoid($nums->[$i]);
     }
     
     return $nums_out;
@@ -524,7 +523,7 @@ class MyAIUtil : precompile {
     
     my $nums_out = new float[scalar @$nums];
     for (my $i = 0; $i < @$nums; $i++) {
-      $nums_out->[$i] = sigmoid_derivative($nums->[$i]);
+      $nums_out->[$i] = cur->sigmoid_derivative($nums->[$i]);
     }
     
     return $nums_out;
@@ -551,7 +550,7 @@ class MyAIUtil : precompile {
     
     my $nums_out = new float[scalar @$nums];
     for (my $i = 0; $i < @$nums; $i++) {
-      $nums_out->[$i] = relu($nums->[$i]);
+      $nums_out->[$i] = cur->relu($nums->[$i]);
     }
     
     return $nums_out;
@@ -562,7 +561,7 @@ class MyAIUtil : precompile {
     
     my $nums_out = new float[scalar @$nums];
     for (my $i = 0; $i < @$nums; $i++) {
-      $nums_out->[$i] = relu_derivative($nums->[$i]);
+      $nums_out->[$i] = cur->relu_derivative($nums->[$i]);
     }
     
     return $nums_out;
@@ -573,7 +572,7 @@ class MyAIUtil : precompile {
     
     my $cross_entropy_cost = 0f;
     for (my $i = 0; $i < @$vec_a; $i++) {
-      my $tmp = -$vec_y->[$i] * logf($vec_a->[$i]) - (1 - $vec_y->[$i]) * logf(1 - $vec_a->[$i]);
+      my $tmp = -$vec_y->[$i] * Math->logf($vec_a->[$i]) - (1 - $vec_y->[$i]) * Math->logf(1 - $vec_a->[$i]);
       $cross_entropy_cost += $tmp;
     }
 
@@ -594,10 +593,10 @@ class MyAIUtil : precompile {
   # 正規分布に従う乱数を求める関数
   # $m は平均, $sigma は標準偏差、
   static method randn : float ($m : float, $sigma : float) {
-    my $r1 = ((double)crand() + 1) / ((double)Fn->RAND_MAX + 2);
-    my $r2 = ((double)crand() + 1) / ((double)Fn->RAND_MAX + 2);
+    my $r1 = ((double)Fn->crand() + 1) / ((double)Fn->RAND_MAX + 2);
+    my $r2 = ((double)Fn->crand() + 1) / ((double)Fn->RAND_MAX + 2);
 
-    my $randn = ($sigma * sqrt(-2 * log($r1)) * sin(2 * 3.14159265359 * $r2)) + $m;
+    my $randn = ($sigma * Math->sqrt(-2 * Math->log($r1)) * Math->sin(2 * 3.14159265359 * $r2)) + $m;
 
     return (float)$randn;
   }
@@ -645,7 +644,7 @@ class MyAIUtil : precompile {
       }
     }
     
-    my $mat_out = mat_new($mat_out_values, $mat1_rows_length, $mat2_columns_length);
+    my $mat_out = cur->mat_new($mat_out_values, $mat1_rows_length, $mat2_columns_length);
     
     return $mat_out;
   }
@@ -702,12 +701,12 @@ class MyAIUtil : precompile {
     my $nums_length = @$nums;
     my $exp_total = 0f;
     for (my $i = 0; $i < $nums_length; $i++) {
-      $exp_total += expf($nums->[$i]);
+      $exp_total += Math->expf($nums->[$i]);
     }
     
     my $nums_out = new float[$nums_length];
     for (my $i = 0; $i < $nums_length; $i++) {
-      $nums_out->[$i] = expf($nums->[$i]) / $exp_total;
+      $nums_out->[$i] = Math->expf($nums->[$i]) / $exp_total;
     }
     
     return $nums_out;
