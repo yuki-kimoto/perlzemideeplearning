@@ -458,7 +458,7 @@ class MyAIUtil : precompile {
   # Xivierの初期値を取得
   static method create_xavier_init_value : float ($inputs_length : int) {
       
-    return cur->randn(0, Math->sqrtf((float)1 / $inputs_length));
+    return &randn(0, Math->sqrtf((float)1 / $inputs_length));
   }
 
   # 配列の各要素にXivierの初期値を取得を適用する
@@ -466,7 +466,7 @@ class MyAIUtil : precompile {
     
     my $nums_out = new float[$array_length];
     for (my $i = 0; $i < $array_length; $i++) {
-      $nums_out->[$i] = cur->create_xavier_init_value($inputs_length);
+      $nums_out->[$i] = &create_xavier_init_value($inputs_length);
     }
     
     return $nums_out;
@@ -475,7 +475,7 @@ class MyAIUtil : precompile {
   # Heの初期値を取得
   static method create_he_init_value : float ($inputs_length : int) {
     
-    my $he_init_value = cur->randn(0, Math->sqrtf((float)2 / $inputs_length));
+    my $he_init_value = &randn(0, Math->sqrtf((float)2 / $inputs_length));
     
     return $he_init_value;
   }
@@ -485,7 +485,7 @@ class MyAIUtil : precompile {
     
     my $nums_out = new float[$array_length];
     for (my $i = 0; $i < $array_length; $i++) {
-      $nums_out->[$i] = cur->create_he_init_value($inputs_length);
+      $nums_out->[$i] = &create_he_init_value($inputs_length);
     }
     
     return $nums_out;
@@ -502,7 +502,7 @@ class MyAIUtil : precompile {
   # シグモイド関数の導関数
   static method sigmoid_derivative : float ($x : float) {
     
-    my $sigmoid_derivative = cur->sigmoid($x) * (1 - cur->sigmoid($x));
+    my $sigmoid_derivative = &sigmoid($x) * (1 - &sigmoid($x));
     
     return $sigmoid_derivative;
   }
@@ -512,7 +512,7 @@ class MyAIUtil : precompile {
     
     my $nums_out = new float[scalar @$nums];
     for (my $i = 0; $i < @$nums; $i++) {
-      $nums_out->[$i] = cur->sigmoid($nums->[$i]);
+      $nums_out->[$i] = &sigmoid($nums->[$i]);
     }
     
     return $nums_out;
@@ -523,7 +523,7 @@ class MyAIUtil : precompile {
     
     my $nums_out = new float[scalar @$nums];
     for (my $i = 0; $i < @$nums; $i++) {
-      $nums_out->[$i] = cur->sigmoid_derivative($nums->[$i]);
+      $nums_out->[$i] = &sigmoid_derivative($nums->[$i]);
     }
     
     return $nums_out;
@@ -550,7 +550,7 @@ class MyAIUtil : precompile {
     
     my $nums_out = new float[scalar @$nums];
     for (my $i = 0; $i < @$nums; $i++) {
-      $nums_out->[$i] = cur->relu($nums->[$i]);
+      $nums_out->[$i] = &relu($nums->[$i]);
     }
     
     return $nums_out;
@@ -561,7 +561,7 @@ class MyAIUtil : precompile {
     
     my $nums_out = new float[scalar @$nums];
     for (my $i = 0; $i < @$nums; $i++) {
-      $nums_out->[$i] = cur->relu_derivative($nums->[$i]);
+      $nums_out->[$i] = &relu_derivative($nums->[$i]);
     }
     
     return $nums_out;
@@ -644,7 +644,7 @@ class MyAIUtil : precompile {
       }
     }
     
-    my $mat_out = cur->mat_new($mat_out_values, $mat1_rows_length, $mat2_columns_length);
+    my $mat_out = &mat_new($mat_out_values, $mat1_rows_length, $mat2_columns_length);
     
     return $mat_out;
   }
