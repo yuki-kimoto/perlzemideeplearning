@@ -4,6 +4,7 @@ class MyAIUtil : precompile {
   use List;
   use Hash;
   use MyAIUtil::FloatMatrix;
+  use Time;
 
   # 総実行回数
   our $TOTAL_COUNT : int;
@@ -11,12 +12,21 @@ class MyAIUtil : precompile {
   # 正解数
   our $ANSWER_MATCH_COUNT : int;
   
+  # seed
+  our $SEED : int;
+  
+  INIT {
+    $SEED = (int)Time->time;
+  }
+  
   # シャッフルする
   static method shufflei : int[] ($array_original : int[]) {
     my $size = @$array_original;
     my $array = Fn->copy_array_int($array_original);
     for (my $i = 0; $i < $size; $i++) {
-      my $j = Fn->crand() % $size;
+      my $seed = $SEED;
+      my $j = Fn->crand(\$seed) % $size;
+      $SEED = $seed;
       my $t = $array->[$i];
       $array->[$i] = $array->[$j];
       $array->[$j] = $t;
@@ -593,8 +603,10 @@ class MyAIUtil : precompile {
   # 正規分布に従う乱数を求める関数
   # $m は平均, $sigma は標準偏差、
   static method randn : float ($m : float, $sigma : float) {
-    my $r1 = ((double)Fn->crand() + 1) / ((double)Fn->RAND_MAX + 2);
-    my $r2 = ((double)Fn->crand() + 1) / ((double)Fn->RAND_MAX + 2);
+    my $seed = $SEED;
+    my $r1 = ((double)Fn->crand(\$seed) + 1) / ((double)Fn->RAND_MAX + 2);
+    my $r2 = ((double)Fn->crand(\$seed) + 1) / ((double)Fn->RAND_MAX + 2);
+    $SEED = $seed;
 
     my $randn = ($sigma * Math->sqrt(-2 * Math->log($r1)) * Math->sin(2 * 3.14159265359 * $r2)) + $m;
 
