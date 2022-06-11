@@ -19,14 +19,14 @@
 
   /* ヘッダ */
   .header {
-    border-bottom:2px solid #cccccc;
-    margin-bottom:10px;
+    border-bottom:2px solid var(--theme_color);
     background:white;
   }
   .header_main {
-    max-width:1030px;
+    max-width:860px;
     display:flex;
     margin:0 auto;
+    padding:0 2px;
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: “Calibri”,”メイリオ”,Meiryo,”ヒラギノ角ゴ Pro W3″,Hiragino Kaku Gothic Pro,”ＭＳ Ｐゴシック”,sans-serif; 
@@ -56,16 +56,12 @@
   .header_right {
     width:25%;
     text-align:right;
+    padding-top:8px;
   }
   .header_right a,.header_right a:visited {
-    display:inline-block;
-    background:#FF4DA0;
-    color:white;
-    text-decoration:none;
-    padding:15px 25px 10px 25px;
-    text-align:center;
-    font-weight:bold;
-    height:100%;
+  }
+  .header_right img {
+    width:35px;
   }
   
   /* フッタ */
@@ -78,52 +74,50 @@
     font-size:13px;
   }
 
-  .footer .what_is_this_site {
-    width:100%;
-    padding:25px 0;
-    font-size:16px;
-    background:#fafafa;
-  }
-  .footer .what_is_this_site b {
-    padding-left:3px;
-    padding-right:3px;
-    font-size:101%;
-  }
-  .footer .what_is_this_site ul {
-  }
-  .footer .what_is_this_site li {
-    list-style:none;
-  }
-  .footer .what_is_this_site img {
-    width:100%;
-    max-width:110px;
-    margin-bottom:15px;
-  }
-  
   /* footer */
   .footer .perlri_link img {
     width:105px;
     display:block;
     margin-left:auto;
     margin-right:auto;
-    margin-bottom:20px;
   }
   .footer .perlri_link a, .footer .perlri_link a:visited {
     color:white;
     display:block;
     height:100%;
-    padding:28px 0 25px 0;
-    font-size:18px;
+    padding:18px 0 15px 0;
+    font-size:17px;
     font-weight:bold;
     color:white;
     text-align:center;
     background:#70AD47;
     letter-spacing:1px;
-    font-size:18px;
     cursor:pointer;
   }
   .footer .perlri_link a:hover {
     opacity:0.8;
+  }
+
+  .footer-services {
+    background:#ecefec;
+    padding-top:18px;
+    padding-bottom:18px;
+  }
+  .footer-services ul {
+    max-width:860px;
+    margin:0 auto;
+    display:flex;
+    flex-wrap:wrap;
+  }
+
+  .footer-services li {
+    width:33.3%;
+    list-style:none;
+  }
+  .footer-services a {
+    text-decoration:none;
+    font-size:16px;
+    line-height:2;
   }
 
   .youtube_block {
@@ -146,12 +140,12 @@
 
   /* container */
   .container {
-    background:#F2EFE;
+    background:#F0F5F0;
   }
   
   /* main */
   .main {
-    max-width:1030px;
+    max-width:860px;
     width:100%;
     margin: 0 auto;
     display:flex;
@@ -160,13 +154,15 @@
   
   /* content */
   .content {
-    width:calc(100% - 320px);
+    width:100%;
   }
   
   /* entry */
   .entry {
     background:white;
-    margin-bottom:10px;
+    border: 1px solid #D2D6DE;
+    margin-top:5px;
+    margin-bottom:25px;
   }
   .entry li {
     margin-left:25px;
@@ -176,10 +172,9 @@
   /* サイドバー */
   .side {
     width:320px;
+    display:none;
   }
   .side_list {
-    margin-top:15px;
-    margin-bottom:20px;
   }
   .side_list_body {
     text-align:center;
@@ -200,13 +195,13 @@
   
   h2 {
     font-size:28px;
-    margin:7px 0 12px 0;
-    padding:1px 0 0px 0px;
+    padding:16px 15px 13px 15px;
     letter-spacing:1px;
+    background: var(--theme_color);
   }
   h2 a, h2 a:visited {
     text-decoration:none;
-    color:#000;
+    color:white;
   }
   h3 {
     font-size:21px;
@@ -221,10 +216,9 @@
   h4 {
     font-size:18px;
     font-weight:bold;
-    padding:6px 0px 4px 5px;
+    padding:6px 0px 4px 10px;
     letter-spacing:0.5px;
     margin:15px 0 18px 0;
-    border-bottom:dashed 1px #ddd;
   }
   p {
     font-size:16px;
@@ -393,42 +387,21 @@
     opacity:0.8;
   }
   
-
-/* Tablet and Smart phone */
-@media only screen and (max-width:1030px) {
-  .content {
-    margin:0;
-    padding:0;
-    width:100%;
-    height:auto;
-    overflow:visible;
-  }
-  .hide-smartphone {
-    display:none;
-  }
-  
-  /* ヘッダ */
-  .header_main, h2,h4,h5, p, pre {
-    margin-left:auto;
-    margin-right:auto;
-  }
-  .header_right a,.header_right a:visited {
-    padding:15px 10px 10px 10px;
-  }
-  
-  /* サイドバー */
-  .side {
-    width:100%;
-  }
-  h1, h2, h3, h4, p, pre, blockquote, table, ul, ol, .header_main  {
+  p, pre, blockquote, table, ul, ol  {
     margin-left:10px;
     margin-right:10px;
   }
-  h1, h3 {
-    margin-left:0;
-    margin-right:0;
+
+/* Tablet and Smart phone */
+@media only screen and (max-width:860px) {
+  .header_main  {
+    margin-left:10px;
+    margin-right:10px;
   }
-  .header_main {
-    margin-right:0;
+
+  .entry {
+    border:none;
+    margin-top:0;
+    margin-bottom:0;
   }
 }
