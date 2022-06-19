@@ -5,6 +5,9 @@ class MyAIUtil : precompile {
   use Hash;
   use MyAIUtil::FloatMatrix;
   use Time;
+  use IntList;
+  use Array;
+  use Format;
 
   # 総実行回数
   our $TOTAL_COUNT : int;
@@ -211,7 +214,7 @@ class MyAIUtil : precompile {
     my $image_unit_length = $mnist_train_image_rows_count * $mnist_train_image_columns_count;
     my $mnist_train_image_data = (byte[])$mnist_train_image_info_spvm->get("data");
     
-    my $first_inputs_raw_uint8 = Fn->copy_array_range_byte($mnist_train_image_data, $image_unit_length * $training_data_index, $image_unit_length);
+    my $first_inputs_raw_uint8 = Array->copy_range_byte($mnist_train_image_data, $image_unit_length * $training_data_index, $image_unit_length);
     my $first_inputs_raw_float = MyAIUtil->convert_ubyte_array_to_float_array($first_inputs_raw_uint8);
     
     my $first_inputs = MyAIUtil->array_div_scalar($first_inputs_raw_float, 255);
@@ -297,7 +300,7 @@ class MyAIUtil : precompile {
     
     my $cost = MyAIUtil->cross_entropy_cost($last_activate_outputs, $desired_outputs);
     # my $cost = MyAIUtil->cross_entropy_cost($softmax_outputs, $desired_outputs);
-    print "Cost: " . Fn->sprintf("%.3f", (double)$cost) . "\n";
+    print "Cost: " . Format->sprintf("%.3f", (double)$cost) . "\n";
     
     # 正解したかどうか
     my $answer = MyAIUtil->max_index($last_activate_outputs);
@@ -310,7 +313,7 @@ class MyAIUtil : precompile {
     
     # 正解率を出力
     my $match_rate = (double)$ANSWER_MATCH_COUNT / $TOTAL_COUNT;
-    print "Match Rate: " . Fn->sprintf("%.02f", 100 * $match_rate) . "%\n";
+    print "Match Rate: " . Format->sprintf("%.02f", 100 * $match_rate) . "%\n";
     
     # 活性化された出力の微小変化 / 最後の出力の微小変化 
     my $grad_last_outputs_to_activate_func = MyAIUtil->array_sigmoid_derivative($last_outputs);
