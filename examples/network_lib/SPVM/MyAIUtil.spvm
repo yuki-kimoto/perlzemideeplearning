@@ -25,7 +25,7 @@ class MyAIUtil : precompile {
   # シャッフルする
   static method shufflei : int[] ($array_original : int[]) {
     my $size = @$array_original;
-    my $array = Fn->copy_array_int($array_original);
+    my $array = Array->copy_int($array_original);
     for (my $i = 0; $i < $size; $i++) {
       my $seed = $SEED;
       my $j = Fn->crand(\$seed) % $size;
@@ -214,7 +214,7 @@ class MyAIUtil : precompile {
     my $image_unit_length = $mnist_train_image_rows_count * $mnist_train_image_columns_count;
     my $mnist_train_image_data = (byte[])$mnist_train_image_info_spvm->get("data");
     
-    my $first_inputs_raw_uint8 = Array->copy_range_byte($mnist_train_image_data, $image_unit_length * $training_data_index, $image_unit_length);
+    my $first_inputs_raw_uint8 = Array->copy_byte($mnist_train_image_data, $image_unit_length * $training_data_index, $image_unit_length);
     my $first_inputs_raw_float = MyAIUtil->convert_ubyte_array_to_float_array($first_inputs_raw_uint8);
     
     my $first_inputs = MyAIUtil->array_div_scalar($first_inputs_raw_float, 255);
