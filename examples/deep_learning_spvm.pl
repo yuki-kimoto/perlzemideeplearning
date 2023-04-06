@@ -6,6 +6,8 @@ use List::Util 'shuffle';
 
 use SPVM 'MyAIUtil';
 
+my $api = SPVM::api();
+
 # 学習率
 my $learning_rate = 3;
 
@@ -158,7 +160,7 @@ sub backprop {
   my $mnist_train_image_data = $mnist_train_image_info->{data};
   my $first_inputs_packed = substr($mnist_train_image_data, $image_unit_length * $training_data_index, $image_unit_length);
   my $first_inputs_raw_uint8 = [unpack("C$first_inputs_length", $first_inputs_packed)];
-  my $first_inputs_raw_float = SPVM::new_float_array($first_inputs_raw_uint8);
+  my $first_inputs_raw_float = $api->new_float_array($first_inputs_raw_uint8);
   my $first_inputs = SPVM::MyAIUtil->array_div_scalar($first_inputs_raw_float, 255);
   
   # 期待される出力を確率分布化する

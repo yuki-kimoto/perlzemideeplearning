@@ -7,6 +7,9 @@ use List::Util 'shuffle';
 use SPVM 'MyAIUtil';
 use SPVM 'Hash';
 use SPVM 'List';
+use SPVM 'IntList';
+
+my $api = SPVM::api();
 
 # 学習率
 my $learning_rate = 3;
@@ -21,7 +24,7 @@ my $mini_batch_size = 10;
 # 28 * 28 = 728のモノクロ画像を (入力)
 # 30個の中間出力を通って        (中間出力1)
 # 0～9の10個に分類する          (出力)
-my $neurons_count_in_layers = SPVM::new_int_array([784, 30, 10]);
+my $neurons_count_in_layers = $api->new_int_array([784, 30, 10]);
 
 # MNIEST画像情報を読み込む - 入力用につかう手書きの訓練データ
 my $mnist_train_image_file = "$FindBin::Bin/data/train-images-idx3-ubyte";
@@ -32,14 +35,14 @@ my $mnist_train_label_file = "$FindBin::Bin/data/train-labels-idx1-ubyte";
 my $mnist_train_label_info = load_mnist_train_label_file($mnist_train_label_file);
 
 # MNIEST画像情報をSPVMデータに変換
-my $mnist_train_image_info_spvm = SPVM::Hash->new(SPVM::new_object_array('object[]', []));
+my $mnist_train_image_info_spvm = SPVM::Hash->new($api->new_object_array('object[]', []));
 $mnist_train_image_info_spvm->set_int(items_count => $mnist_train_image_info->{items_count});
 $mnist_train_image_info_spvm->set_int(rows_count => $mnist_train_image_info->{rows_count});
 $mnist_train_image_info_spvm->set_int(columns_count => $mnist_train_image_info->{columns_count});
-$mnist_train_image_info_spvm->set(data => SPVM::new_byte_array_from_bin($mnist_train_image_info->{data}));
+$mnist_train_image_info_spvm->set(data => $api->new_byte_array_from_bin($mnist_train_image_info->{data}));
 
 # MNIESTラベル情報をSPVMデータに変換
-my $mnist_train_label_info_spvm = SPVM::Hash->new(SPVM::new_object_array('object[]', []));
+my $mnist_train_label_info_spvm = SPVM::Hash->new($api->new_object_array('object[]', []));
 $mnist_train_label_info_spvm->set_int(items_count => $mnist_train_label_info->{items_count});
 $mnist_train_label_info_spvm->set(label_numbers => SPVM::IntList->new($mnist_train_label_info->{label_numbers}));
 
