@@ -4,11 +4,11 @@ class MyAIUtil : precompile {
   use List;
   use Hash;
   use MyAIUtil::FloatMatrix;
-  use Time;
   use IntList;
   use Array;
   use Format;
-
+  use Sys;
+  
   # 総実行回数
   our $TOTAL_COUNT : int;
 
@@ -19,7 +19,7 @@ class MyAIUtil : precompile {
   our $SEED : int;
   
   INIT {
-    $SEED = (int)Time->time;
+    $SEED = (int)Sys->time;
   }
   
   # シャッフルする
@@ -300,7 +300,7 @@ class MyAIUtil : precompile {
     
     my $cost = MyAIUtil->cross_entropy_cost($last_activate_outputs, $desired_outputs);
     # my $cost = MyAIUtil->cross_entropy_cost($softmax_outputs, $desired_outputs);
-    print "Cost: " . Format->sprintf("%.3f", (double)$cost) . "\n";
+    print "Cost: " . Format->sprintf("%.3f", [(object)$cost]) . "\n";
     
     # 正解したかどうか
     my $answer = MyAIUtil->max_index($last_activate_outputs);
@@ -313,7 +313,7 @@ class MyAIUtil : precompile {
     
     # 正解率を出力
     my $match_rate = (double)$ANSWER_MATCH_COUNT / $TOTAL_COUNT;
-    print "Match Rate: " . Format->sprintf("%.02f", 100 * $match_rate) . "%\n";
+    print "Match Rate: " . Format->sprintf("%.02f", [(object)(100 * $match_rate)]) . "%\n";
     
     # 活性化された出力の微小変化 / 最後の出力の微小変化 
     my $grad_last_outputs_to_activate_func = MyAIUtil->array_sigmoid_derivative($last_outputs);
